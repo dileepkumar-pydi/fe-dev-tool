@@ -1,6 +1,7 @@
 import { Button } from '../components/Button'
 import { Section } from '../components/Section'
 import { SectionHeading } from '../components/SectionHeading'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 
 export function CtaSection() {
   return (
@@ -11,7 +12,7 @@ export function CtaSection() {
         largeTitle
       />
 
-      <Button href="#categories" className="button--cta" withArrow>
+      <Button href={toHash(APP_ROUTES.dashboard)} className="button--cta" withArrow>
         Launch Dashboard
       </Button>
     </Section>

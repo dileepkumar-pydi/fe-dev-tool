@@ -1,0 +1,220 @@
+export const sidebarItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: '⌂', type: 'page' },
+  { id: 'base64', label: 'Base64 Tools', icon: '</>', type: 'tool' },
+  { id: 'json', label: 'JSON Tools', icon: '{}', type: 'tool' },
+  { id: 'hash', label: 'Hash Tools', icon: '#', type: 'tool' },
+  { id: 'text', label: 'Text Tools', icon: '📄', type: 'tool' },
+  { id: 'timestamp', label: 'Timestamp Tools', icon: '◔', type: 'tool' },
+  { id: 'number', label: 'Number Tools', icon: '010', type: 'tool' },
+  { id: 'escape', label: 'Escape Tools', icon: '🛡', type: 'tool' },
+  { id: 'uuid', label: 'UUID Tools', icon: '✣', type: 'tool' },
+  { id: 'color', label: 'Color Tools', icon: '◌', type: 'tool' },
+  { id: 'file', label: 'File Tools', icon: '⇪', type: 'tool' },
+]
+
+export const dashboardStats = [
+  { label: 'Total Tools', value: '100+', icon: '</>', accent: 'sky' },
+  { label: 'API Requests', value: '45.2k', icon: '↗', accent: 'mint' },
+  { label: 'This Month', value: '1.8k', icon: '◴', accent: 'slate' },
+]
+
+export const dashboardCategories = [
+  { id: 'base64', title: 'Base64 Tools', description: 'Encode and decode Base64 data', count: 12, color: 'sky', icon: '</>' },
+  { id: 'json', title: 'JSON Tools', description: 'Format, validate, and minify JSON', count: 8, color: 'pink', icon: '{}' },
+  { id: 'hash', title: 'Hash Tools', description: 'Generate SHA, MD5, and other hashes', count: 15, color: 'green', icon: '#' },
+  { id: 'text', title: 'Text Tools', description: 'Transform and analyze text', count: 20, color: 'orange', icon: '📄' },
+  { id: 'timestamp', title: 'Timestamp Tools', description: 'Convert timestamps and dates', count: 6, color: 'rose', icon: '◔' },
+  { id: 'number', title: 'Number Tools', description: 'Convert between number bases', count: 10, color: 'indigo', icon: '010' },
+  { id: 'escape', title: 'Escape Tools', description: 'Escape and unescape strings', count: 8, color: 'teal', icon: '🛡' },
+  { id: 'color', title: 'Color Tools', description: 'Convert color formats', count: 12, color: 'purple', icon: '◌' },
+  { id: 'file', title: 'File Tools', description: 'Analyze and process files', count: 9, color: 'amber', icon: '⇪' },
+]
+
+export const popularTools = [
+  { rank: 1, name: 'Base64 Encode', uses: '12.4k uses' },
+  { rank: 2, name: 'JSON Formatter', uses: '10.2k uses' },
+  { rank: 3, name: 'SHA-256 Hash', uses: '8.9k uses' },
+  { rank: 4, name: 'UUID Generator', uses: '7.1k uses' },
+  { rank: 5, name: 'Timestamp Converter', uses: '6.8k uses' },
+]
+
+export const recentActivity = [
+  { title: 'Base64 Decode', time: '2 minutes ago' },
+  { title: 'JSON Validate', time: '15 minutes ago' },
+  { title: 'SHA-256 Hash', time: '1 hour ago' },
+  { title: 'HEX to RGB', time: '2 hours ago' },
+]
+
+export const quickStartGuide = {
+  title: 'Quick Start Guide',
+  subtitle: 'New to DevTools?',
+  description: 'Learn how to use our API and integrate tools into your workflow.',
+  action: 'View Documentation',
+}
+
+export const toolPages = {
+  base64: {
+    category: 'Base64 Tools',
+    title: 'Base64 Encoder/Decoder',
+    badge: 'Popular',
+    description: 'Encode text to Base64 or decode Base64 to text',
+    layout: 'dual-panels',
+    inputTitle: 'Input',
+    outputTitle: 'Output',
+    inputControls: {
+      segmented: ['Encode', 'Decode'],
+      textareaPlaceholder: 'Enter text to encode...',
+      primaryAction: 'Encode',
+      secondaryAction: '↻',
+    },
+    outputPlaceholder: 'Result will appear here...',
+    exampleSection: {
+      title: 'Examples',
+      cards: [
+        { title: 'Plain Text', body: 'Hello, World!' },
+        { title: 'Base64', body: 'SGVsbG8sIFdvcmxkIQ==' },
+      ],
+    },
+  },
+  json: {
+    category: 'JSON Tools',
+    title: 'JSON Formatter & Validator',
+    badge: 'Editor',
+    description: 'Format, minify, and validate JSON data',
+    layout: 'dual-panels',
+    inputTitle: 'Input JSON',
+    outputTitle: 'Output',
+    inputControls: {
+      textareaPlaceholder: '{"key": "value"}',
+      actions: ['Format', 'Minify', 'Validate'],
+      secondaryAction: '↻',
+    },
+    outputPlaceholder: 'Formatted/minified JSON will appear here...',
+    exampleSection: {
+      title: 'Example JSON',
+      code: `{
+  "user": {
+    "id": 12345,
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}`,
+    },
+  },
+  hash: {
+    category: 'Hash Tools',
+    title: 'Hash Generator',
+    badge: 'Security',
+    description: 'Generate cryptographic hashes using various algorithms',
+    layout: 'dual-panels',
+    inputTitle: 'Input',
+    outputTitle: 'All Hashes',
+    form: {
+      fields: [
+        { label: 'Algorithm', type: 'select', value: 'SHA-256' },
+        { label: 'Text to Hash', type: 'textarea', placeholder: 'Enter text to hash...' },
+      ],
+      primaryAction: 'Generate Hash',
+      secondaryAction: '↻',
+    },
+    outputEmpty: 'Generate a hash to see results',
+    exampleSection: {
+      title: 'About Hash Algorithms',
+      cards: [
+        { title: 'SHA-256', body: 'Widely used cryptographic hash function, part of SHA-2 family' },
+        { title: 'SHA-512', body: 'More secure variant with longer hash output (512 bits)' },
+        { title: 'MD5', body: 'Legacy algorithm, not recommended for security-critical applications' },
+        { title: 'SHA-1', body: 'Deprecated for security uses, but still used for checksums' },
+      ],
+    },
+  },
+  timestamp: {
+    category: 'Timestamp Tools',
+    title: 'Timestamp Converter',
+    badge: 'Time',
+    description: 'Convert between Unix timestamps and human-readable dates',
+    layout: 'two-cards',
+    cards: [
+      {
+        title: 'Timestamp to Date',
+        icon: '📅',
+        fields: [
+          { label: 'Unix Timestamp', type: 'input', value: '1234567890' },
+        ],
+        primaryAction: 'Convert',
+        secondaryAction: 'Now',
+      },
+      {
+        title: 'Date to Timestamp',
+        icon: '📅',
+        fields: [
+          { label: 'Date & Time', type: 'input', value: 'dd/mm/yyyy, --:-- --' },
+        ],
+        primaryAction: 'Convert',
+        secondaryAction: '↻',
+      },
+    ],
+    exampleSection: {
+      title: 'Quick Reference',
+      cards: [
+        { title: 'Current Timestamp', body: '1780742394' },
+        { title: 'Format', body: 'Unix timestamp (seconds since Jan 1, 1970)' },
+        { title: 'Range', body: '1970-01-01 to 2038-01-19' },
+      ],
+    },
+  },
+  color: {
+    category: 'Color Tools',
+    title: 'Color Converter',
+    badge: 'Design',
+    description: 'Convert colors between HEX, RGB, and HSL formats',
+    layout: 'dual-panels',
+    inputTitle: 'Input Color',
+    outputTitle: 'Color Formats',
+    form: {
+      fields: [
+        { label: 'HEX Color Code', type: 'color-input', value: '#0ea5e9' },
+        { label: 'Pick a Color', type: 'swatch', value: '#0ea5e9' },
+      ],
+      primaryAction: 'Convert',
+      secondaryAction: '↻',
+    },
+    outputEmpty: 'Enter a color to see conversions',
+    exampleSection: {
+      title: 'Popular Color Palettes',
+      palettes: [
+        { name: 'Primary Blue', value: '#0ea5e9' },
+        { name: 'Teal', value: '#14b8a6' },
+        { name: 'Purple', value: '#8b5cf6' },
+        { name: 'Orange', value: '#f97316' },
+        { name: 'Green', value: '#4ade80' },
+        { name: 'Pink', value: '#ec4899' },
+        { name: 'Amber', value: '#f59e0b' },
+        { name: 'Red', value: '#ef4444' },
+      ],
+    },
+  },
+  file: {
+    category: 'File Tools',
+    title: 'File Metadata Viewer',
+    badge: 'Upload',
+    description: 'Extract metadata and generate checksums from uploaded files',
+    layout: 'upload',
+    upload: {
+      title: 'Upload File',
+      emptyTitle: 'Drop file here',
+      emptyHint: 'or click to browse',
+      action: 'Choose File',
+    },
+    outputTitle: 'File Information',
+    outputEmpty: 'Upload a file to view metadata',
+    exampleSection: {
+      title: 'Supported Operations',
+      cards: [
+        { title: 'Metadata Extraction', body: 'Name, size, MIME type, modification date' },
+        { title: 'Checksum Generation', body: 'SHA-256 hash for file verification' },
+        { title: 'Privacy', body: 'All processing happens locally in your browser' },
+      ],
+    },
+  },
+}

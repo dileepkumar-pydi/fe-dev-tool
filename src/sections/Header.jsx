@@ -1,5 +1,6 @@
 import { BrandLogo } from '../components/BrandLogo'
 import { Button } from '../components/Button'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 
 export function Header() {
   return (
@@ -10,10 +11,12 @@ export function Header() {
         </a>
 
         <nav className="site-nav" aria-label="Primary">
-          <a href="#categories" className="site-nav__link">
+          <a href={toHash(APP_ROUTES.dashboard)} className="site-nav__link">
             Dashboard
           </a>
-          <Button href="#cta">Get Started</Button>
+          <Button href={toHash(APP_ROUTES.dashboard)} size="small">
+            Get Started
+          </Button>
         </nav>
       </div>
     </header>
