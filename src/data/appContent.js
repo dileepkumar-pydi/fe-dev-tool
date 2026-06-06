@@ -54,6 +54,7 @@ export const quickStartGuide = {
 
 export const toolPages = {
   base64: {
+    id: 'base64',
     category: 'Base64 Tools',
     title: 'Base64 Encoder/Decoder',
     badge: 'Popular',
@@ -77,6 +78,7 @@ export const toolPages = {
     },
   },
   json: {
+    id: 'json',
     category: 'JSON Tools',
     title: 'JSON Formatter & Validator',
     badge: 'Editor',
@@ -102,6 +104,7 @@ export const toolPages = {
     },
   },
   hash: {
+    id: 'hash',
     category: 'Hash Tools',
     title: 'Hash Generator',
     badge: 'Security',
@@ -129,6 +132,7 @@ export const toolPages = {
     },
   },
   timestamp: {
+    id: 'timestamp',
     category: 'Timestamp Tools',
     title: 'Timestamp Converter',
     badge: 'Time',
@@ -164,6 +168,7 @@ export const toolPages = {
     },
   },
   color: {
+    id: 'color',
     category: 'Color Tools',
     title: 'Color Converter',
     badge: 'Design',
@@ -195,6 +200,7 @@ export const toolPages = {
     },
   },
   file: {
+    id: 'file',
     category: 'File Tools',
     title: 'File Metadata Viewer',
     badge: 'Upload',

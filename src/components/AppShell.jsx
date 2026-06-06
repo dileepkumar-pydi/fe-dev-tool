@@ -2,13 +2,16 @@ import { BrandLogo } from './BrandLogo'
 import { Button } from './Button'
 import { SearchIcon } from './SearchIcon'
 import { AppSidebar } from './AppSidebar'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 
 export function AppShell({ children, sidebarItems, activeItemId, onNavigate }) {
   return (
     <div className="app-shell">
       <aside className="app-shell__sidebar">
         <div className="app-shell__brand">
-          <BrandLogo />
+          <a href={toHash(APP_ROUTES.landing)} className="brand-link" aria-label="Go to DevTools home">
+            <BrandLogo />
+          </a>
         </div>
         <AppSidebar items={sidebarItems} activeItemId={activeItemId} onNavigate={onNavigate} />
         <div className="app-shell__sidebar-footer">
@@ -29,7 +32,11 @@ export function AppShell({ children, sidebarItems, activeItemId, onNavigate }) {
           </label>
 
           <div className="app-topbar__actions">
-            <Button variant="secondary" size="small">
+            <Button
+              variant="secondary"
+              size="small"
+              href="https://dev-tool-service.onrender.com/v1/dev-tool/swagger-ui/index.html#"
+            >
               Documentation
             </Button>
             <Button size="small">API Key</Button>
