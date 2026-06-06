@@ -1,0 +1,7 @@
+services:
+  - type: static_site
+    name: fe-dev-tool
+    env: static
+    branch: main
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
