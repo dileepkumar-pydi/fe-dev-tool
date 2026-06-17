@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import JSZip from 'jszip'
-import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
 import { SurfaceCard } from '../components/SurfaceCard'
 import { ToolHeader } from '../components/ToolHeader'
 import {
+  addPdfPageNumbers,
   base64DecodeText,
   base64EncodeText,
+  compressPdfFile,
   convertColorFromHex,
   convertDateToTimestamp,
   convertNumberBase,
@@ -16,7 +17,12 @@ import {
   generateHash,
   generateUuid,
   inspectFile,
+  mergePdfFiles,
   minifyJson,
+  removePdfPages as removePdfPagesApi,
+  reorderPdfPages as reorderPdfPagesApi,
+  rotatePdfFile,
+  splitPdfFile,
   transformTextCase,
   validateJson,
   validateUuid,
@@ -106,30 +112,44 @@ function PdfTool({ page }) {
       return
     }
 
+    if (activeOperationId !== 'merge' && selectedFiles.length !== 1) {
+      updateMessage('Select exactly one PDF file for this operation.')
+      return
+    }
+
     setIsProcessing(true)
     updateMessage('')
 
     try {
-      let outputs = []
-
       if (activeOperationId === 'merge') {
-        outputs = [await mergePdfFiles(selectedFiles)]
+        const response = await mergePdfFiles(selectedFiles.map((item) => item.file))
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'split') {
-        outputs = await splitPdfFiles(selectedFiles, splitMode, splitRange)
+        const response = await splitPdfFile(selectedFiles[0].file, splitMode, splitMode === 'range' ? splitRange : undefined)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'compress') {
-        outputs = await compressPdfFiles(selectedFiles, compressionLevel)
+        const response = await compressPdfFile(selectedFiles[0].file, compressionLevel)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'rotate') {
-        outputs = await rotatePdfFiles(selectedFiles, rotationAngle)
+        const response = await rotatePdfFile(selectedFiles[0].file, rotationAngle)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'remove') {
-        outputs = await removePdfPages(selectedFiles, removePages)
+        const response = await removePdfPagesApi(selectedFiles[0].file, removePages)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'reorder') {
-        outputs = await reorderPdfPages(selectedFiles, pageOrder)
+        const response = await reorderPdfPagesApi(selectedFiles[0].file, pageOrder)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'numbers') {
-        outputs = await addPdfPageNumbers(selectedFiles, numberPosition, startNumber)
+        const response = await addPdfPageNumbers(selectedFiles[0].file, numberPosition, startNumber)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
       }
-
-      await downloadPdfOutputs(outputs, activeOperationId)
-      updateMessage(getPdfSuccessMessage(activeOperationId, outputs.length), 'success')
     } catch (error) {
       updateMessage(error.message || `Unable to process ${activeOperation.label.toLowerCase()}.`, 'error')
     } finally {
@@ -1629,275 +1649,39 @@ function getPdfPrimaryAction(operationId) {
   return 'Add Page Numbers'
 }
 
-function getPdfSuccessMessage(operationId, outputCount) {
-  if (operationId === 'merge') return 'Merged PDF downloaded successfully.'
-  if (operationId === 'split') return outputCount > 1 ? 'Split PDF ZIP downloaded successfully.' : 'Split PDF downloaded successfully.'
-  if (operationId === 'compress') return outputCount > 1 ? 'Compressed PDF ZIP downloaded successfully.' : 'Compressed PDF downloaded successfully.'
-  if (operationId === 'rotate') return outputCount > 1 ? 'Rotated PDF ZIP downloaded successfully.' : 'Rotated PDF downloaded successfully.'
-  if (operationId === 'remove') return outputCount > 1 ? 'Updated PDF ZIP downloaded successfully.' : 'Updated PDF downloaded successfully.'
-  if (operationId === 'reorder') return outputCount > 1 ? 'Reordered PDF ZIP downloaded successfully.' : 'Reordered PDF downloaded successfully.'
-  return outputCount > 1 ? 'Page-numbered PDF ZIP downloaded successfully.' : 'Page-numbered PDF downloaded successfully.'
-}
+async function downloadPdfBatchResponse(batchResponse, operationId) {
+  const outputs = batchResponse?.files || []
 
-async function mergePdfFiles(selectedFiles) {
-  const mergedPdf = await PDFDocument.create()
-
-  for (const item of selectedFiles) {
-    const sourcePdf = await loadPdfDocument(item.file)
-    const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices())
-    copiedPages.forEach((page) => mergedPdf.addPage(page))
+  if (!outputs.length) {
+    throw new Error('The backend did not return any PDF output files.')
   }
 
-  return {
-    name: 'merged-document.pdf',
-    bytes: await mergedPdf.save(),
-  }
-}
-
-async function splitPdfFiles(selectedFiles, splitMode, splitRange) {
-  const outputs = []
-
-  for (const item of selectedFiles) {
-    const sourcePdf = await loadPdfDocument(item.file)
-    const pageCount = sourcePdf.getPageCount()
-    const groups = splitMode === 'every-page'
-      ? sourcePdf.getPageIndices().map((index) => [index + 1, index + 1])
-      : parsePageRanges(splitRange, pageCount)
-
-    for (const [groupIndex, [startPage, endPage]] of groups.entries()) {
-      const nextPdf = await PDFDocument.create()
-      const pageIndexes = range(startPage - 1, endPage - 1)
-      const copiedPages = await nextPdf.copyPages(sourcePdf, pageIndexes)
-      copiedPages.forEach((page) => nextPdf.addPage(page))
-
-      outputs.push({
-        name: `${fileStem(item.name)}-part-${groupIndex + 1}.pdf`,
-        bytes: await nextPdf.save(),
-      })
-    }
-  }
-
-  return outputs
-}
-
-async function compressPdfFiles(selectedFiles, compressionLevel) {
-  const outputs = []
-
-  for (const item of selectedFiles) {
-    const sourcePdf = await loadPdfDocument(item.file)
-    const rebuiltPdf = await PDFDocument.create()
-    const copiedPages = await rebuiltPdf.copyPages(sourcePdf, sourcePdf.getPageIndices())
-    copiedPages.forEach((page) => rebuiltPdf.addPage(page))
-
-    const bytes = await rebuiltPdf.save({
-      useObjectStreams: compressionLevel !== 'light',
-      addDefaultPage: false,
-      objectsPerTick: compressionLevel === 'strong' ? 100 : 50,
-    })
-
-    outputs.push({
-      name: `${fileStem(item.name)}-compressed.pdf`,
-      bytes,
-    })
-  }
-
-  return outputs
-}
-
-async function rotatePdfFiles(selectedFiles, rotationAngle) {
-  const outputs = []
-  const angle = Number(rotationAngle)
-
-  for (const item of selectedFiles) {
-    const pdf = await loadPdfDocument(item.file)
-    pdf.getPages().forEach((page) => page.setRotation(degrees(angle)))
-
-    outputs.push({
-      name: `${fileStem(item.name)}-rotated.pdf`,
-      bytes: await pdf.save(),
-    })
-  }
-
-  return outputs
-}
-
-async function removePdfPages(selectedFiles, removePages) {
-  const outputs = []
-
-  for (const item of selectedFiles) {
-    const pdf = await loadPdfDocument(item.file)
-    const pagesToRemove = parsePageNumberList(removePages, pdf.getPageCount())
-
-    if (pagesToRemove.length >= pdf.getPageCount()) {
-      throw new Error('At least one page must remain after removal.')
-    }
-
-    pagesToRemove
-      .slice()
-      .sort((left, right) => right - left)
-      .forEach((pageNumber) => pdf.removePage(pageNumber - 1))
-
-    outputs.push({
-      name: `${fileStem(item.name)}-pages-removed.pdf`,
-      bytes: await pdf.save(),
-    })
-  }
-
-  return outputs
-}
-
-async function reorderPdfPages(selectedFiles, pageOrder) {
-  const outputs = []
-
-  for (const item of selectedFiles) {
-    const sourcePdf = await loadPdfDocument(item.file)
-    const order = parsePageOrder(pageOrder, sourcePdf.getPageCount())
-    const nextPdf = await PDFDocument.create()
-    const copiedPages = await nextPdf.copyPages(sourcePdf, order.map((pageNumber) => pageNumber - 1))
-    copiedPages.forEach((page) => nextPdf.addPage(page))
-
-    outputs.push({
-      name: `${fileStem(item.name)}-reordered.pdf`,
-      bytes: await nextPdf.save(),
-    })
-  }
-
-  return outputs
-}
-
-async function addPdfPageNumbers(selectedFiles, numberPosition, startNumber) {
-  const outputs = []
-  const initialNumber = Number(startNumber)
-
-  if (!Number.isInteger(initialNumber) || initialNumber < 0) {
-    throw new Error('Start number must be a valid non-negative integer.')
-  }
-
-  for (const item of selectedFiles) {
-    const pdf = await loadPdfDocument(item.file)
-    const font = await pdf.embedFont(StandardFonts.Helvetica)
-
-    pdf.getPages().forEach((page, index) => {
-      const label = String(initialNumber + index)
-      const { width, height } = page.getSize()
-      const fontSize = 12
-      const textWidth = font.widthOfTextAtSize(label, fontSize)
-      const { x, y } = getPageNumberCoordinates(numberPosition, width, height, textWidth)
-
-      page.drawText(label, {
-        x,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0.12, 0.16, 0.27),
-      })
-    })
-
-    outputs.push({
-      name: `${fileStem(item.name)}-numbered.pdf`,
-      bytes: await pdf.save(),
-    })
-  }
-
-  return outputs
-}
-
-async function downloadPdfOutputs(outputs, operationId) {
   if (outputs.length === 1) {
-    downloadFile(new Blob([outputs[0].bytes], { type: 'application/pdf' }), outputs[0].name)
+    const file = outputs[0]
+    downloadFile(base64ToBlob(file.base64Content, file.contentType), file.fileName)
     return
   }
 
   const zip = new JSZip()
   outputs.forEach((output) => {
-    zip.file(output.name, output.bytes)
+    zip.file(output.fileName, base64ToUint8Array(output.base64Content))
   })
 
   const zipBlob = await zip.generateAsync({ type: 'blob' })
   downloadFile(zipBlob, `${operationId}-results.zip`)
 }
 
-async function loadPdfDocument(file) {
-  return PDFDocument.load(await file.arrayBuffer())
+function base64ToBlob(base64Content, contentType = 'application/pdf') {
+  return new Blob([base64ToUint8Array(base64Content)], { type: contentType })
 }
 
-function parsePageRanges(value, pageCount) {
-  const segments = value
-    .split(',')
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-
-  if (!segments.length) {
-    throw new Error('Enter at least one page range.')
+function base64ToUint8Array(base64Content) {
+  const binary = atob(base64Content)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
   }
-
-  return segments.map((segment) => {
-    if (segment.includes('-')) {
-      const [rawStart, rawEnd] = segment.split('-').map((part) => part.trim())
-      const start = Number(rawStart)
-      const end = Number(rawEnd)
-
-      if (!isValidPageNumber(start, pageCount) || !isValidPageNumber(end, pageCount) || start > end) {
-        throw new Error(`Invalid page range: ${segment}`)
-      }
-
-      return [start, end]
-    }
-
-    const page = Number(segment)
-    if (!isValidPageNumber(page, pageCount)) {
-      throw new Error(`Invalid page number: ${segment}`)
-    }
-
-    return [page, page]
-  })
-}
-
-function parsePageNumberList(value, pageCount) {
-  return Array.from(
-    new Set(
-      parsePageRanges(value, pageCount).flatMap(([start, end]) => range(start, end)),
-    ),
-  ).sort((left, right) => left - right)
-}
-
-function parsePageOrder(value, pageCount) {
-  const order = value
-    .split(',')
-    .map((segment) => Number(segment.trim()))
-    .filter((pageNumber) => Number.isInteger(pageNumber))
-
-  if (order.length !== pageCount) {
-    throw new Error(`Page order must contain exactly ${pageCount} page numbers.`)
-  }
-
-  const uniqueOrder = new Set(order)
-  if (uniqueOrder.size !== pageCount || order.some((pageNumber) => !isValidPageNumber(pageNumber, pageCount))) {
-    throw new Error('Page order must include each page exactly once.')
-  }
-
-  return order
-}
-
-function getPageNumberCoordinates(position, width, height, textWidth) {
-  const margin = 24
-
-  if (position === 'top-left') return { x: margin, y: height - margin }
-  if (position === 'top-right') return { x: width - textWidth - margin, y: height - margin }
-  if (position === 'bottom-left') return { x: margin, y: margin }
-  return { x: width - textWidth - margin, y: margin }
-}
-
-function fileStem(name) {
-  return name.replace(/\.pdf$/i, '') || 'document'
-}
-
-function isValidPageNumber(value, pageCount) {
-  return Number.isInteger(value) && value >= 1 && value <= pageCount
-}
-
-function range(start, end) {
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index)
+  return bytes
 }
 
 function downloadFile(blob, fileName) {

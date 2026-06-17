@@ -142,3 +142,90 @@ export function inspectFile(file) {
     isFormData: true,
   })
 }
+
+export function mergePdfFiles(files) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  return apiRequest('/api/pdf/merge', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function splitPdfFile(file, mode, ranges) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('mode', mode)
+  if (ranges) {
+    formData.append('ranges', ranges)
+  }
+
+  return apiRequest('/api/pdf/split', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function compressPdfFile(file, level) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('level', level)
+
+  return apiRequest('/api/pdf/compress', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function rotatePdfFile(file, angle) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('angle', angle)
+
+  return apiRequest('/api/pdf/rotate', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function removePdfPages(file, pages) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('pages', pages)
+
+  return apiRequest('/api/pdf/remove-pages', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function reorderPdfPages(file, order) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('order', order)
+
+  return apiRequest('/api/pdf/reorder-pages', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function addPdfPageNumbers(file, position, startNumber) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('position', position)
+  formData.append('startNumber', startNumber)
+
+  return apiRequest('/api/pdf/page-numbers', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
