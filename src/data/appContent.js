@@ -10,6 +10,7 @@ export const sidebarItems = [
   { id: 'uuid', label: 'UUID Tools', icon: '✣', type: 'tool' },
   { id: 'color', label: 'Color Tools', icon: '◌', type: 'tool' },
   { id: 'file', label: 'File Tools', icon: '⇪', type: 'tool' },
+  { id: 'pdf', label: 'PDF Tools', icon: '▤', type: 'tool' },
 ]
 
 export const dashboardStats = [
@@ -28,6 +29,7 @@ export const dashboardCategories = [
   { id: 'escape', title: 'Escape Tools', description: 'Escape and unescape strings', count: 8, color: 'teal', icon: '🛡' },
   { id: 'color', title: 'Color Tools', description: 'Convert color formats', count: 12, color: 'purple', icon: '◌' },
   { id: 'file', title: 'File Tools', description: 'Analyze and process files', count: 9, color: 'amber', icon: '⇪' },
+  { id: 'pdf', title: 'PDF Tools', description: 'Merge, split, and organize PDFs', count: 7, color: 'rose', icon: '▤' },
 ]
 
 export const popularTools = [
@@ -292,5 +294,79 @@ export const toolPages = {
         { title: 'Privacy', body: 'All processing happens locally in your browser' },
       ],
     },
+  },
+  pdf: {
+    id: 'pdf',
+    category: 'PDF Tools',
+    title: 'PDF Tools',
+    badge: 'Browser',
+    description: 'Enterprise PDF utilities with the same clean in-browser workflow as the rest of DevTools',
+    hero: {
+      subtitle: 'Enterprise PDF utilities · Browser-based · Zero uploads',
+      highlights: ['Browser-based', 'Secure', 'Instant'],
+    },
+    operations: [
+      {
+        id: 'merge',
+        label: 'Merge PDF',
+        description: 'Combine multiple PDF files into one document',
+        tag: 'Popular',
+      },
+      {
+        id: 'split',
+        label: 'Split PDF',
+        description: 'Extract specific pages or split by ranges',
+      },
+      {
+        id: 'compress',
+        label: 'Compress PDF',
+        description: 'Reduce file size while preserving readability',
+        tag: 'Popular',
+      },
+      {
+        id: 'rotate',
+        label: 'Rotate Pages',
+        description: 'Rotate pages by 90°, 180°, or 270°',
+      },
+      {
+        id: 'remove',
+        label: 'Remove Pages',
+        description: 'Delete unwanted pages from a PDF',
+      },
+      {
+        id: 'reorder',
+        label: 'Reorder Pages',
+        description: 'Rearrange pages before exporting',
+      },
+      {
+        id: 'numbers',
+        label: 'Page Numbers',
+        description: 'Add page numbers automatically',
+      },
+    ],
+    uploadPanel: {
+      title: 'Drop your PDF files here',
+      hint: 'or click to browse from your computer',
+      bullets: ['PDF only', 'Up to 100MB', 'Processed locally'],
+      action: 'Choose PDF Files',
+    },
+    capabilities: [
+      'Client-side PDF processing',
+      'No file size server limit',
+      'Preserves original quality',
+      'Instant download on complete',
+      'Works offline',
+    ],
+    infoCards: [
+      {
+        title: 'Privacy First',
+        body: 'Your files are processed entirely in-browser using local PDF tooling. Nothing is sent to any server.',
+      },
+      {
+        title: 'About This Tool',
+        body: 'Each PDF operation uses the same clean DevTools layout and keeps the background aligned with the rest of the app.',
+      },
+    ],
+    localNote: 'All processing happens locally in your browser. Your files are never uploaded to any server.',
   },
 }

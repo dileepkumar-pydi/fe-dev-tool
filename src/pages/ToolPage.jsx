@@ -50,8 +50,118 @@ export function ToolPage({ page }) {
       {page.id === 'uuid' ? <UuidTool /> : null}
       {page.id === 'color' ? <ColorTool page={page} /> : null}
       {page.id === 'file' ? <FileTool page={page} /> : null}
+      {page.id === 'pdf' ? <PdfTool page={page} /> : null}
 
       {page.exampleSection ? <ExampleSection section={page.exampleSection} /> : null}
+    </div>
+  )
+}
+
+function PdfTool({ page }) {
+  const [activeOperationId, setActiveOperationId] = useState(page.operations[0]?.id ?? '')
+  const [selectedFileName, setSelectedFileName] = useState('')
+
+  const activeOperation = page.operations.find((operation) => operation.id === activeOperationId) ?? page.operations[0]
+
+  return (
+    <div className="pdf-tool-page">
+      <section className="pdf-tool-hero">
+        <div className="pdf-tool-hero__brand">
+          <div className="pdf-tool-hero__icon">▤</div>
+          <div>
+            <h2 className="pdf-tool-hero__title">{page.title}</h2>
+            <p className="pdf-tool-hero__subtitle">{page.hero.subtitle}</p>
+          </div>
+        </div>
+
+        <div className="pdf-tool-hero__highlights">
+          {page.hero.highlights.map((highlight) => (
+            <span key={highlight} className="pdf-tool-highlight">
+              {highlight}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <div className="pdf-tool-layout">
+        <SurfaceCard title="Operations" className="pdf-tool-nav">
+          <div className="pdf-tool-nav__list">
+            {page.operations.map((operation) => {
+              const isActive = operation.id === activeOperation.id
+              return (
+                <button
+                  key={operation.id}
+                  type="button"
+                  className={`pdf-tool-nav__item${isActive ? ' pdf-tool-nav__item--active' : ''}`}
+                  onClick={() => setActiveOperationId(operation.id)}
+                >
+                  <div>
+                    <div className="pdf-tool-nav__label">{operation.label}</div>
+                    <div className="pdf-tool-nav__description">{operation.description}</div>
+                  </div>
+                  {operation.tag ? <span className="pdf-tool-nav__tag">{operation.tag}</span> : null}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="pdf-tool-note">{page.localNote}</div>
+        </SurfaceCard>
+
+        <div className="pdf-tool-main">
+          <SurfaceCard
+            title={activeOperation.label}
+            actions={activeOperation.tag ? <span className="tool-header__badge">{activeOperation.tag}</span> : null}
+            className="pdf-tool-workspace"
+          >
+            <p className="pdf-tool-workspace__description">{activeOperation.description}</p>
+
+            <label className="upload-dropzone upload-dropzone--pdf">
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="sr-only"
+                onChange={(event) => {
+                  const [file] = event.target.files || []
+                  setSelectedFileName(file?.name || '')
+                }}
+              />
+              <div className="upload-dropzone__icon">⇪</div>
+              <div className="upload-dropzone__title">
+                {selectedFileName || page.uploadPanel.title}
+              </div>
+              <div className="upload-dropzone__hint">{page.uploadPanel.hint}</div>
+              <div className="pdf-tool-bullets">
+                {page.uploadPanel.bullets.map((bullet) => (
+                  <span key={bullet} className="pdf-tool-bullet">
+                    {bullet}
+                  </span>
+                ))}
+              </div>
+              <span className="tool-action tool-action--primary tool-action--compact">{page.uploadPanel.action}</span>
+            </label>
+          </SurfaceCard>
+        </div>
+
+        <div className="pdf-tool-side">
+          {page.infoCards.map((card) => (
+            <SurfaceCard key={card.title} title={card.title}>
+              <p className="dashboard-panel-copy pdf-tool-copy">{card.body}</p>
+            </SurfaceCard>
+          ))}
+
+          <SurfaceCard title="Capabilities">
+            <div className="pdf-tool-capabilities">
+              {page.capabilities.map((capability) => (
+                <div key={capability} className="pdf-tool-capability">
+                  {capability}
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+        </div>
+      </div>
     </div>
   )
 }

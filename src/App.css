@@ -1141,6 +1141,13 @@
   color: #7b8aa0;
 }
 
+.upload-dropzone--pdf {
+  min-height: 340px;
+  padding: 24px;
+  border-color: #d7e5f2;
+  background: linear-gradient(180deg, #fbfdff 0%, #f5f9fd 100%);
+}
+
 .status-message {
   margin-top: 10px;
   color: #6f8099;
@@ -1343,6 +1350,180 @@
   text-align: center;
 }
 
+.pdf-tool-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pdf-tool-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+  border: 1px solid #dfe8f2;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
+}
+
+.pdf-tool-hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pdf-tool-hero__icon {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f97373, #ef5f52);
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.pdf-tool-hero__title {
+  margin: 0;
+  color: #1f2a44;
+  font-size: 1.22rem;
+  font-weight: 800;
+}
+
+.pdf-tool-hero__subtitle {
+  margin: 4px 0 0;
+  color: #7b8aa0;
+  font-size: 0.82rem;
+}
+
+.pdf-tool-hero__highlights {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pdf-tool-highlight {
+  padding: 8px 12px;
+  border: 1px solid #e3ebf3;
+  border-radius: 999px;
+  background: #f7fafc;
+  color: #6f8099;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.pdf-tool-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  gap: 16px;
+}
+
+.pdf-tool-nav__list,
+.pdf-tool-side,
+.pdf-tool-capabilities {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdf-tool-nav__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2eaf3;
+  border-radius: 12px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.pdf-tool-nav__item--active {
+  border-color: #f4b3ae;
+  background: #fef5f4;
+  box-shadow: 0 4px 12px rgba(239, 95, 82, 0.07);
+}
+
+.pdf-tool-nav__label {
+  color: #1f2a44;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.pdf-tool-nav__description {
+  margin-top: 4px;
+  color: #7b8aa0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.pdf-tool-nav__tag {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fde8e5;
+  color: #c24135;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.pdf-tool-note {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e6edf5;
+  border-radius: 12px;
+  background: #f7fafc;
+  color: #7b8aa0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.pdf-tool-main {
+  min-width: 0;
+}
+
+.pdf-tool-workspace__description {
+  margin: 0 0 14px;
+  color: #6f8099;
+  font-size: 0.86rem;
+}
+
+.pdf-tool-bullets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.pdf-tool-bullet {
+  padding: 6px 10px;
+  border: 1px solid #ead7d3;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #8b5b54;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pdf-tool-copy {
+  margin: 0;
+}
+
+.pdf-tool-capability {
+  padding: 10px 12px;
+  border: 1px solid #e4edf6;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #1f2a44;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 @media (max-width: 1100px) {
   .card-grid--three {
     grid-template-columns: 1fr;
@@ -1358,6 +1539,16 @@
   .palette-grid {
     grid-template-columns: 1fr;
   }
+
+  .pdf-tool-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pdf-tool-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1367,7 +1558,8 @@
 
   .site-header__inner,
   .site-footer__inner,
-  .hero-search {
+  .hero-search,
+  .pdf-tool-hero {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1444,7 +1636,8 @@
 
   .example-grid--2,
   .example-grid--3,
-  .example-grid--4 {
+  .example-grid--4,
+  .pdf-tool-side {
     grid-template-columns: 1fr;
   }
 }

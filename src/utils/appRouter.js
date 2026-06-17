@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   uuid: 'app/uuid',
   color: 'app/color',
   file: 'app/file',
+  pdf: 'app/pdf',
 }
 
 export function normalizeHashRoute(hash) {

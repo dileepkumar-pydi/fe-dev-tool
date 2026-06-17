@@ -19,6 +19,7 @@ const itemRouteMap = {
   uuid: APP_ROUTES.uuid,
   color: APP_ROUTES.color,
   file: APP_ROUTES.file,
+  pdf: APP_ROUTES.pdf,
 }
 
 function App() {
