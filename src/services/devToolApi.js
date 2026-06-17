@@ -70,6 +70,20 @@ export function generateHash(value, algorithm) {
   })
 }
 
+export function transformTextCase(value, targetCase) {
+  return apiRequest('/api/text/case', {
+    method: 'POST',
+    body: { value, targetCase },
+  })
+}
+
+export function fetchTextStats(value) {
+  return apiRequest('/api/text/stats', {
+    method: 'POST',
+    body: { value },
+  })
+}
+
 export function convertTimestampToDate(timestamp, zoneId = 'UTC') {
   return apiRequest('/api/timestamp/to-date', {
     method: 'POST',
@@ -91,6 +105,33 @@ export function convertColorFromHex(value) {
   })
 }
 
+export function convertNumberBase(value, sourceBase, targetBase) {
+  return apiRequest('/api/number-base/convert', {
+    method: 'POST',
+    body: { value, sourceBase, targetBase },
+  })
+}
+
+export function escapeValue(type, mode, value) {
+  return apiRequest(`/api/escape/${type}/${mode}`, {
+    method: 'POST',
+    body: { value },
+  })
+}
+
+export function generateUuid() {
+  return apiRequest('/api/uuid/generate', {
+    method: 'POST',
+  })
+}
+
+export function validateUuid(value) {
+  return apiRequest('/api/uuid/validate', {
+    method: 'POST',
+    body: { value },
+  })
+}
+
 export function inspectFile(file) {
   const formData = new FormData()
   formData.append('file', file)
@@ -101,4 +142,3 @@ export function inspectFile(file) {
     isFormData: true,
   })
 }
-

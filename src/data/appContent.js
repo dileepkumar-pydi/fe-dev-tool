@@ -131,6 +131,23 @@ export const toolPages = {
       ],
     },
   },
+  text: {
+    id: 'text',
+    category: 'Text Tools',
+    title: 'Text Transformer',
+    badge: 'Transform',
+    description: 'Transform text case and analyze text statistics',
+    outputPlaceholder: 'Transformed text will appear here...',
+    exampleSection: {
+      title: 'Transformation Examples',
+      cards: [
+        { title: 'Input', body: 'Hello World! This is DevTools.' },
+        { title: 'UPPERCASE', body: 'HELLO WORLD! THIS IS DEVTOOLS.' },
+        { title: 'Title Case', body: 'Hello World! This Is Devtools.' },
+        { title: 'Reverse', body: '.slooTveD si sihT !dlroW olleH' },
+      ],
+    },
+  },
   timestamp: {
     id: 'timestamp',
     category: 'Timestamp Tools',
@@ -164,6 +181,59 @@ export const toolPages = {
         { title: 'Current Timestamp', body: '1780742394' },
         { title: 'Format', body: 'Unix timestamp (seconds since Jan 1, 1970)' },
         { title: 'Range', body: '1970-01-01 to 2038-01-19' },
+      ],
+    },
+  },
+  number: {
+    id: 'number',
+    category: 'Number Tools',
+    title: 'Number Base Converter',
+    badge: 'Binary',
+    description: 'Convert numbers between decimal, binary, octal, and hexadecimal',
+    outputEmpty: 'Enter a number to see conversions',
+    exampleSection: {
+      title: 'Quick Reference',
+      table: {
+        columns: ['Decimal', 'Binary', 'Octal', 'Hexadecimal'],
+        rows: [
+          ['0', '0b0', '0o0', '0x0'],
+          ['1', '0b1', '0o1', '0x1'],
+          ['2', '0b10', '0o2', '0x2'],
+          ['8', '0b1000', '0o10', '0x8'],
+          ['10', '0b1010', '0o12', '0xA'],
+        ],
+      },
+    },
+  },
+  escape: {
+    id: 'escape',
+    category: 'Escape Tools',
+    title: 'Escape & Unescape',
+    badge: 'Encode',
+    description: 'Encode and decode URL, HTML, and JavaScript strings',
+    outputPlaceholder: 'Result will appear here...',
+    exampleSection: {
+      title: 'Common Use Cases',
+      cards: [
+        { title: 'URL Encoding', body: 'Before\nhello world & params=1' },
+        { title: 'After', body: 'hello%20world%20%26%20params%3D1' },
+        { title: 'HTML Encoding', body: 'Before\n<div>Hello</div>' },
+        { title: 'After', body: '&lt;div&gt;Hello&lt;/div&gt;' },
+      ],
+    },
+  },
+  uuid: {
+    id: 'uuid',
+    category: 'UUID Tools',
+    title: 'UUID Generator & Validator',
+    badge: 'Generate',
+    description: 'Generate and validate universally unique identifiers (UUIDs)',
+    exampleSection: {
+      title: 'About UUIDs',
+      cards: [
+        { title: 'Format', body: '8-4-4-4-12 hexadecimal digits separated by hyphens' },
+        { title: 'Version 4', body: 'Randomly generated, most commonly used version' },
+        { title: 'Use Cases', body: 'Database keys, session IDs, distributed systems' },
       ],
     },
   },

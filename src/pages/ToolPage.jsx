@@ -6,15 +6,29 @@ import {
   base64EncodeText,
   convertColorFromHex,
   convertDateToTimestamp,
+  convertNumberBase,
   convertTimestampToDate,
+  escapeValue,
+  fetchTextStats,
   formatJson,
   generateHash,
+  generateUuid,
   inspectFile,
   minifyJson,
+  transformTextCase,
   validateJson,
+  validateUuid,
 } from '../services/devToolApi'
 
 const HASH_ALGORITHMS = ['SHA-256', 'SHA-512', 'SHA-1', 'MD5']
+const TEXT_TRANSFORMS = ['upper', 'lower', 'title', 'sentence', 'reverse']
+const ESCAPE_TYPES = ['url', 'html', 'javascript']
+const BASE_OPTIONS = [
+  { label: 'Binary (Base 2)', value: 2 },
+  { label: 'Octal (Base 8)', value: 8 },
+  { label: 'Decimal (Base 10)', value: 10 },
+  { label: 'Hexadecimal (Base 16)', value: 16 },
+]
 
 export function ToolPage({ page }) {
   return (
@@ -29,7 +43,11 @@ export function ToolPage({ page }) {
       {page.id === 'base64' ? <Base64Tool page={page} /> : null}
       {page.id === 'json' ? <JsonTool page={page} /> : null}
       {page.id === 'hash' ? <HashTool page={page} /> : null}
+      {page.id === 'text' ? <TextTool page={page} /> : null}
       {page.id === 'timestamp' ? <TimestampTool page={page} /> : null}
+      {page.id === 'number' ? <NumberTool page={page} /> : null}
+      {page.id === 'escape' ? <EscapeTool page={page} /> : null}
+      {page.id === 'uuid' ? <UuidTool /> : null}
       {page.id === 'color' ? <ColorTool page={page} /> : null}
       {page.id === 'file' ? <FileTool page={page} /> : null}
 
@@ -73,40 +91,18 @@ function Base64Tool({ page }) {
     setMode((current) => (current === 'encode' ? 'decode' : 'encode'))
   }
 
-  const actions = (
-    <>
-      <button type="button" className="tool-header-icon" onClick={handleSwap} aria-label="Swap input and output">
-        ⇵
-      </button>
-      <button
-        type="button"
-        className="tool-header-icon"
-        aria-label="Copy output"
-        onClick={() => copyText(result, setMessage, page.outputPlaceholder)}
-      >
-        ⧉
-      </button>
-    </>
-  )
-
   return (
     <div className="tool-grid">
       <SurfaceCard title={page.inputTitle}>
-        <div className="segmented-control">
-          {['encode', 'decode'].map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`segmented-control__item${mode === item ? ' segmented-control__item--active' : ''}`}
-              onClick={() => {
-                setMode(item)
-                setMessage('')
-              }}
-            >
-              {capitalize(item)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          options={['encode', 'decode']}
+          selected={mode}
+          onSelect={(value) => {
+            setMode(value)
+            setMessage('')
+          }}
+          formatLabel={capitalize}
+        />
 
         <textarea
           className="tool-textarea"
@@ -136,7 +132,24 @@ function Base64Tool({ page }) {
         <StatusMessage message={message} />
       </SurfaceCard>
 
-      <SurfaceCard title={page.outputTitle} actions={actions}>
+      <SurfaceCard
+        title={page.outputTitle}
+        actions={
+          <>
+            <button type="button" className="tool-header-icon" onClick={handleSwap} aria-label="Swap input and output">
+              ⇵
+            </button>
+            <button
+              type="button"
+              className="tool-header-icon"
+              aria-label="Copy output"
+              onClick={() => copyText(result, setMessage, page.outputPlaceholder)}
+            >
+              ⧉
+            </button>
+          </>
+        }
+      >
         <pre className="output-panel output-panel--code">{result}</pre>
       </SurfaceCard>
     </div>
@@ -315,9 +328,111 @@ function HashTool({ page }) {
       </SurfaceCard>
 
       <SurfaceCard title={page.outputTitle}>
-        <pre className="output-panel output-panel--code">
-          {result || 'Generate a hash to see results'}
-        </pre>
+        <pre className="output-panel output-panel--code">{result || 'Generate a hash to see results'}</pre>
+      </SurfaceCard>
+    </div>
+  )
+}
+
+function TextTool({ page }) {
+  const [input, setInput] = useState('')
+  const [transform, setTransform] = useState('upper')
+  const [result, setResult] = useState(page.outputPlaceholder)
+  const [message, setMessage] = useState('')
+  const [stats, setStats] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleTransform = async () => {
+    if (!input.trim()) {
+      setMessage('Enter text to transform.')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+
+    try {
+      const [caseResponse, statsResponse] = await Promise.all([
+        transformTextCase(input, transform),
+        fetchTextStats(input),
+      ])
+      setResult(caseResponse.data.result)
+      setStats(statsResponse.data)
+      setMessage(caseResponse.status.description)
+    } catch (error) {
+      setResult(page.outputPlaceholder)
+      setMessage(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="tool-grid">
+      <SurfaceCard title="Input Text">
+        <textarea
+          className="tool-textarea"
+          placeholder="Enter text to transform..."
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+        />
+
+        <div className="tool-control-group">
+          <label className="form-field__label">Transformation</label>
+          <SegmentedControl
+            options={TEXT_TRANSFORMS}
+            selected={transform}
+            onSelect={setTransform}
+            formatLabel={(value) => (value === 'upper' ? 'UPPER' : capitalize(value))}
+            columns={5}
+          />
+        </div>
+
+        <div className="action-row">
+          <button type="button" className="tool-action tool-action--primary" onClick={handleTransform} disabled={isLoading}>
+            {isLoading ? 'Transforming...' : 'Transform'}
+          </button>
+          <button
+            type="button"
+            className="tool-icon-button"
+            aria-label="Reset"
+            onClick={() => {
+              setInput('')
+              setTransform('upper')
+              setResult(page.outputPlaceholder)
+              setStats(null)
+              setMessage('')
+            }}
+          >
+            ↻
+          </button>
+        </div>
+
+        {stats ? (
+          <div className="stat-pill-row">
+            <StatPill label="Chars" value={stats.characters} />
+            <StatPill label="Words" value={stats.words} />
+            <StatPill label="Lines" value={stats.lines} />
+          </div>
+        ) : null}
+
+        <StatusMessage message={message} />
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Output"
+        actions={
+          <button
+            type="button"
+            className="tool-header-icon"
+            aria-label="Copy output"
+            onClick={() => copyText(result, setMessage, page.outputPlaceholder)}
+          >
+            ⧉
+          </button>
+        }
+      >
+        <pre className="output-panel output-panel--code">{result}</pre>
       </SurfaceCard>
     </div>
   )
@@ -446,6 +561,348 @@ function TimestampTool({ page }) {
   )
 }
 
+function NumberTool({ page }) {
+  const [sourceBase, setSourceBase] = useState(10)
+  const [input, setInput] = useState('42')
+  const [results, setResults] = useState(null)
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleConvert = async () => {
+    if (!input.trim()) {
+      setMessage('Enter a number to convert.')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+
+    try {
+      const conversions = await Promise.all(
+        BASE_OPTIONS.map(async (option) => {
+          const response = await convertNumberBase(input, sourceBase, option.value)
+          return [option.value, response.data.result]
+        }),
+      )
+      setResults(Object.fromEntries(conversions))
+      setMessage('Base conversion completed successfully')
+    } catch (error) {
+      setResults(null)
+      setMessage(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="tool-grid">
+        <SurfaceCard title="Input Number">
+          <div className="form-fields">
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="input-base">
+                Input Base
+              </label>
+              <select
+                id="input-base"
+                className="tool-select"
+                value={sourceBase}
+                onChange={(event) => setSourceBase(Number(event.target.value))}
+              >
+                {BASE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="number-input">
+                Number
+              </label>
+              <input
+                id="number-input"
+                className="tool-input"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+              <div className="form-field__hint">
+                Enter a {baseName(sourceBase).toLowerCase()} number (without prefix)
+              </div>
+            </div>
+          </div>
+
+          <div className="action-row">
+            <button type="button" className="tool-action tool-action--primary" onClick={handleConvert} disabled={isLoading}>
+              {isLoading ? 'Converting...' : 'Convert'}
+            </button>
+            <button
+              type="button"
+              className="tool-icon-button"
+              aria-label="Reset"
+              onClick={() => {
+                setSourceBase(10)
+                setInput('42')
+                setResults(null)
+                setMessage('')
+              }}
+            >
+              ↻
+            </button>
+          </div>
+
+          <StatusMessage message={message} />
+        </SurfaceCard>
+
+        <SurfaceCard title="All Bases">
+          <div className="output-panel output-panel--stacked">
+            {results ? (
+              <>
+                <OutputItem label="Binary" value={`0b${results[2]}`} />
+                <OutputItem label="Octal" value={`0o${results[8]}`} />
+                <OutputItem label="Decimal" value={results[10]} />
+                <OutputItem label="Hexadecimal" value={`0x${String(results[16]).toUpperCase()}`} />
+              </>
+            ) : (
+              page.outputEmpty
+            )}
+          </div>
+        </SurfaceCard>
+      </div>
+    </>
+  )
+}
+
+function EscapeTool({ page }) {
+  const [escapeType, setEscapeType] = useState('url')
+  const [mode, setMode] = useState('escape')
+  const [input, setInput] = useState('hello world & special chars!')
+  const [result, setResult] = useState(page.outputPlaceholder)
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!input.trim()) {
+      setMessage('Enter text to process.')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+
+    try {
+      const response = await escapeValue(escapeType, mode, input)
+      setResult(response.data.result)
+      setMessage(response.status.description)
+    } catch (error) {
+      setResult(page.outputPlaceholder)
+      setMessage(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSwap = () => {
+    setInput(result === page.outputPlaceholder ? '' : result)
+    setResult(input || page.outputPlaceholder)
+    setMode((current) => (current === 'escape' ? 'unescape' : 'escape'))
+    setMessage('')
+  }
+
+  return (
+    <div className="tool-grid">
+      <SurfaceCard title="Input">
+        <SegmentedControl
+          options={ESCAPE_TYPES}
+          selected={escapeType}
+          onSelect={(value) => {
+            setEscapeType(value)
+            setMessage('')
+          }}
+          formatLabel={(value) => (value === 'javascript' ? 'JavaScript' : value.toUpperCase())}
+          columns={3}
+        />
+
+        <SegmentedControl
+          options={['escape', 'unescape']}
+          selected={mode}
+          onSelect={(value) => {
+            setMode(value)
+            setMessage('')
+          }}
+          formatLabel={capitalize}
+          columns={2}
+        />
+
+        <textarea className="tool-textarea" value={input} onChange={(event) => setInput(event.target.value)} />
+
+        <div className="action-row">
+          <button type="button" className="tool-action tool-action--primary" onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? 'Processing...' : capitalize(mode)}
+          </button>
+          <button
+            type="button"
+            className="tool-icon-button"
+            aria-label="Reset"
+            onClick={() => {
+              setInput('hello world & special chars!')
+              setResult(page.outputPlaceholder)
+              setMode('escape')
+              setEscapeType('url')
+              setMessage('')
+            }}
+          >
+            ↻
+          </button>
+        </div>
+
+        <StatusMessage message={message} />
+      </SurfaceCard>
+
+      <SurfaceCard
+        title="Output"
+        actions={
+          <>
+            <button type="button" className="tool-header-icon" onClick={handleSwap} aria-label="Swap input and output">
+              ⇵
+            </button>
+            <button
+              type="button"
+              className="tool-header-icon"
+              aria-label="Copy output"
+              onClick={() => copyText(result, setMessage, page.outputPlaceholder)}
+            >
+              ⧉
+            </button>
+          </>
+        }
+      >
+        <pre className="output-panel output-panel--code">{result}</pre>
+      </SurfaceCard>
+    </div>
+  )
+}
+
+function UuidTool() {
+  const [generated, setGenerated] = useState([])
+  const [uuidInput, setUuidInput] = useState('')
+  const [validation, setValidation] = useState(null)
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleGenerate = async (count) => {
+    setIsLoading(true)
+    setMessage('')
+
+    try {
+      const responses = await Promise.all(Array.from({ length: count }, () => generateUuid()))
+      setGenerated(responses.map((response) => response.data.result))
+      setMessage(`Generated ${count} UUID${count > 1 ? 's' : ''} successfully.`)
+    } catch (error) {
+      setMessage(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleValidate = async () => {
+    if (!uuidInput.trim()) {
+      setMessage('Enter a UUID to validate.')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+
+    try {
+      const response = await validateUuid(uuidInput)
+      setValidation(response.data)
+      setMessage(response.status.description)
+    } catch (error) {
+      setValidation(null)
+      setMessage(error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="tool-grid">
+      <SurfaceCard title="Generate UUIDs">
+        <div className="action-row action-row--uuid">
+          {[1, 5, 10].map((count, index) => (
+            <button
+              key={count}
+              type="button"
+              className={`tool-action${index === 0 ? ' tool-action--primary' : ''}`}
+              onClick={() => handleGenerate(count)}
+              disabled={isLoading}
+            >
+              {count === 1 ? 'Generate 1 UUID' : `Generate ${count}`}
+            </button>
+          ))}
+        </div>
+
+        <div className="output-panel output-panel--stacked output-panel--dashed">
+          {generated.length ? (
+            generated.map((value) => <OutputItem key={value} label="UUID" value={value} />)
+          ) : (
+            'Click a button to generate UUIDs'
+          )}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard title="Validate UUID">
+        <div className="form-fields">
+          <div className="form-field">
+            <label className="form-field__label" htmlFor="uuid-input">
+              Enter UUID to Validate
+            </label>
+            <input
+              id="uuid-input"
+              className="tool-input"
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              value={uuidInput}
+              onChange={(event) => setUuidInput(event.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="action-row">
+          <button type="button" className="tool-action tool-action--primary" onClick={handleValidate} disabled={isLoading}>
+            {isLoading ? 'Validating...' : 'Validate'}
+          </button>
+          <button
+            type="button"
+            className="tool-icon-button"
+            aria-label="Reset"
+            onClick={() => {
+              setUuidInput('')
+              setValidation(null)
+              setMessage('')
+            }}
+          >
+            ↻
+          </button>
+        </div>
+
+        <div className="output-panel output-panel--stacked output-panel--dashed">
+          {validation ? (
+            <>
+              <OutputItem label="Valid" value={validation.valid ? 'Yes' : 'No'} />
+              <OutputItem label="Normalized" value={validation.normalized || 'Unavailable'} />
+            </>
+          ) : (
+            'Enter a UUID to validate'
+          )}
+        </div>
+
+        <StatusMessage message={message} />
+      </SurfaceCard>
+    </div>
+  )
+}
+
 function ColorTool({ page }) {
   const [hex, setHex] = useState('#0ea5e9')
   const [result, setResult] = useState(null)
@@ -536,10 +993,7 @@ function ColorTool({ page }) {
             <>
               <OutputItem label="HEX" value={result.hex} />
               <OutputItem label="RGB" value={`${result.red}, ${result.green}, ${result.blue}`} />
-              <OutputItem
-                label="HSL"
-                value={`${result.hue}°, ${result.saturation}%, ${result.lightness}%`}
-              />
+              <OutputItem label="HSL" value={`${result.hue}°, ${result.saturation}%, ${result.lightness}%`} />
             </>
           ) : (
             page.outputEmpty
@@ -608,11 +1062,40 @@ function FileTool({ page }) {
   )
 }
 
+function SegmentedControl({ options, selected, onSelect, formatLabel = identity, columns }) {
+  return (
+    <div
+      className="segmented-control"
+      style={{ gridTemplateColumns: `repeat(${columns || options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((item) => (
+        <button
+          key={item}
+          type="button"
+          className={`segmented-control__item${selected === item ? ' segmented-control__item--active' : ''}`}
+          onClick={() => onSelect(item)}
+        >
+          {formatLabel(item)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function OutputItem({ label, value }) {
   return (
     <div className="output-item">
       <span className="output-item__label">{label}</span>
       <span className="output-item__value">{value}</span>
+    </div>
+  )
+}
+
+function StatPill({ label, value }) {
+  return (
+    <div className="stat-pill">
+      <span className="stat-pill__label">{label}</span>
+      <span className="stat-pill__value">{value}</span>
     </div>
   )
 }
@@ -633,13 +1116,34 @@ function ExampleSection({ section }) {
           {section.cards.map((card) => (
             <div key={card.title} className="example-card">
               <div className="example-card__title">{card.title}</div>
-              <div className="example-card__body">{card.body}</div>
+              <div className="example-card__body example-card__body--multiline">{card.body}</div>
             </div>
           ))}
         </div>
       ) : null}
 
       {section.code ? <pre className="example-code">{section.code}</pre> : null}
+
+      {section.table ? (
+        <div className="reference-table">
+          <div className="reference-table__head">
+            {section.table.columns.map((column) => (
+              <div key={column} className="reference-table__cell reference-table__cell--head">
+                {column}
+              </div>
+            ))}
+          </div>
+          {section.table.rows.map((row, index) => (
+            <div key={`${row[0]}-${index}`} className="reference-table__row">
+              {row.map((cell, cellIndex) => (
+                <div key={`${cell}-${cellIndex}`} className="reference-table__cell">
+                  {cell}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {section.palettes ? (
         <div className="palette-grid">
@@ -672,6 +1176,10 @@ function capitalize(value) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
 }
 
+function baseName(base) {
+  return BASE_OPTIONS.find((option) => option.value === base)?.label || 'Number'
+}
+
 function currentUnixTimestamp() {
   return String(Math.floor(Date.now() / 1000))
 }
@@ -701,4 +1209,8 @@ function formatBytes(size) {
   }
 
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function identity(value) {
+  return value
 }

@@ -4,7 +4,11 @@ export const APP_ROUTES = {
   base64: 'app/base64',
   json: 'app/json',
   hash: 'app/hash',
+  text: 'app/text',
   timestamp: 'app/timestamp',
+  number: 'app/number',
+  escape: 'app/escape',
+  uuid: 'app/uuid',
   color: 'app/color',
   file: 'app/file',
 }

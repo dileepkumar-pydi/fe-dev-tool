@@ -12,7 +12,11 @@ const itemRouteMap = {
   base64: APP_ROUTES.base64,
   json: APP_ROUTES.json,
   hash: APP_ROUTES.hash,
+  text: APP_ROUTES.text,
   timestamp: APP_ROUTES.timestamp,
+  number: APP_ROUTES.number,
+  escape: APP_ROUTES.escape,
+  uuid: APP_ROUTES.uuid,
   color: APP_ROUTES.color,
   file: APP_ROUTES.file,
 }
