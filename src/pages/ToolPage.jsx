@@ -59,9 +59,28 @@ export function ToolPage({ page }) {
 
 function PdfTool({ page }) {
   const [activeOperationId, setActiveOperationId] = useState(page.operations[0]?.id ?? '')
-  const [selectedFileName, setSelectedFileName] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [splitMode, setSplitMode] = useState('range')
+  const [splitRange, setSplitRange] = useState('1-3, 5')
+  const [compressionLevel, setCompressionLevel] = useState('balanced')
+  const [rotationAngle, setRotationAngle] = useState('90')
+  const [removePages, setRemovePages] = useState('2, 5')
+  const [pageOrder, setPageOrder] = useState('1, 3, 2, 4')
+  const [numberPosition, setNumberPosition] = useState('bottom-right')
+  const [startNumber, setStartNumber] = useState('1')
 
   const activeOperation = page.operations.find((operation) => operation.id === activeOperationId) ?? page.operations[0]
+  const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
+
+  const handleFilesChange = (event) => {
+    const files = Array.from(event.target.files || []).map((file) => ({
+      name: file.name,
+      size: file.size,
+      modifiedAt: new Date(file.lastModified).toLocaleDateString(),
+    }))
+
+    setSelectedFiles(files)
+  }
 
   return (
     <div className="pdf-tool-page">
@@ -122,24 +141,108 @@ function PdfTool({ page }) {
                 accept="application/pdf"
                 multiple
                 className="sr-only"
-                onChange={(event) => {
-                  const [file] = event.target.files || []
-                  setSelectedFileName(file?.name || '')
-                }}
+                onChange={handleFilesChange}
               />
-              <div className="upload-dropzone__icon">⇪</div>
-              <div className="upload-dropzone__title">
-                {selectedFileName || page.uploadPanel.title}
-              </div>
-              <div className="upload-dropzone__hint">{page.uploadPanel.hint}</div>
-              <div className="pdf-tool-bullets">
-                {page.uploadPanel.bullets.map((bullet) => (
-                  <span key={bullet} className="pdf-tool-bullet">
-                    {bullet}
+              {selectedFiles.length ? (
+                <div className="pdf-tool-selection">
+                  <div className="pdf-tool-selection__summary">
+                    <div>
+                      <div className="pdf-tool-selection__eyebrow">Selected PDF Files</div>
+                      <div className="pdf-tool-selection__title">
+                        {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} ready
+                      </div>
+                      <div className="pdf-tool-selection__meta">
+                        {formatFileSize(totalSize)} total size
+                      </div>
+                    </div>
+
+                    <span className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
+                      {page.uploadPanel.action}
+                    </span>
+                  </div>
+
+                  <div className="pdf-tool-setup-grid">
+                    <div className="pdf-tool-config">
+                      <div className="pdf-tool-config__title">Operation Setup</div>
+                      <div className="pdf-tool-config__subtitle">
+                        Adjust the options for {activeOperation.label.toLowerCase()} before processing.
+                      </div>
+                      <div className="pdf-tool-config__fields">
+                        {renderPdfOperationControls({
+                          activeOperationId,
+                          splitMode,
+                          splitRange,
+                          compressionLevel,
+                          rotationAngle,
+                          removePages,
+                          pageOrder,
+                          numberPosition,
+                          startNumber,
+                          setSplitMode,
+                          setSplitRange,
+                          setCompressionLevel,
+                          setRotationAngle,
+                          setRemovePages,
+                          setPageOrder,
+                          setNumberPosition,
+                          setStartNumber,
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pdf-tool-file-list">
+                      <div className="pdf-tool-config__title">Files Queue</div>
+                      <div className="pdf-tool-config__subtitle">
+                        {activeOperationId === 'merge' || activeOperationId === 'reorder'
+                          ? 'The order below will be used during processing.'
+                          : 'Review the PDFs included in this operation.'}
+                      </div>
+                      <div className="pdf-tool-files">
+                        {selectedFiles.map((file, index) => (
+                          <div key={`${file.name}-${index}`} className="pdf-tool-file-item">
+                            <div>
+                              <div className="pdf-tool-file-item__name">{file.name}</div>
+                              <div className="pdf-tool-file-item__meta">
+                                {formatFileSize(file.size)} · Updated {file.modifiedAt}
+                              </div>
+                            </div>
+                            <div className="pdf-tool-file-item__index">{index + 1}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pdf-tool-footer">
+                    <button type="button" className="tool-action tool-action--primary">
+                      {getPdfPrimaryAction(activeOperationId)}
+                    </button>
+                    <button
+                      type="button"
+                      className="tool-icon-button tool-icon-button--wide"
+                      onClick={() => setSelectedFiles([])}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pdf-tool-upload-empty">
+                  <div className="upload-dropzone__icon">⇪</div>
+                  <div className="upload-dropzone__title">{page.uploadPanel.title}</div>
+                  <div className="upload-dropzone__hint">{page.uploadPanel.hint}</div>
+                  <div className="pdf-tool-bullets">
+                    {page.uploadPanel.bullets.map((bullet) => (
+                      <span key={bullet} className="pdf-tool-bullet">
+                        {bullet}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
+                    {page.uploadPanel.action}
                   </span>
-                ))}
-              </div>
-              <span className="tool-action tool-action--primary tool-action--compact">{page.uploadPanel.action}</span>
+                </div>
+              )}
             </label>
           </SurfaceCard>
         </div>
@@ -162,6 +265,155 @@ function PdfTool({ page }) {
           </SurfaceCard>
         </div>
       </div>
+    </div>
+  )
+}
+
+function renderPdfOperationControls({
+  activeOperationId,
+  splitMode,
+  splitRange,
+  compressionLevel,
+  rotationAngle,
+  removePages,
+  pageOrder,
+  numberPosition,
+  startNumber,
+  setSplitMode,
+  setSplitRange,
+  setCompressionLevel,
+  setRotationAngle,
+  setRemovePages,
+  setPageOrder,
+  setNumberPosition,
+  setStartNumber,
+}) {
+  if (activeOperationId === 'merge') {
+    return (
+      <>
+        <PdfField label="Output Name">
+          <input className="tool-input" value="merged-document.pdf" readOnly />
+        </PdfField>
+        <PdfField label="Merge Strategy">
+          <select className="tool-select" defaultValue="preserve">
+            <option value="preserve">Preserve original order</option>
+            <option value="bookmark">Create bookmarks from filenames</option>
+          </select>
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'split') {
+    return (
+      <>
+        <PdfField label="Split Mode">
+          <SegmentedControl
+            options={['range', 'every-page']}
+            selected={splitMode}
+            onSelect={setSplitMode}
+            formatLabel={(value) => (value === 'every-page' ? 'Every Page' : 'By Range')}
+          />
+        </PdfField>
+        {splitMode === 'range' ? (
+          <PdfField label="Page Ranges">
+            <input className="tool-input" value={splitRange} onChange={(event) => setSplitRange(event.target.value)} />
+          </PdfField>
+        ) : (
+          <PdfField label="Output Pattern">
+            <input className="tool-input" value="page-{n}.pdf" readOnly />
+          </PdfField>
+        )}
+      </>
+    )
+  }
+
+  if (activeOperationId === 'compress') {
+    return (
+      <>
+        <PdfField label="Compression Level">
+          <SegmentedControl
+            options={['light', 'balanced', 'strong']}
+            selected={compressionLevel}
+            onSelect={setCompressionLevel}
+            formatLabel={capitalize}
+            columns={3}
+          />
+        </PdfField>
+        <PdfField label="Estimated Output">
+          <input className="tool-input" value="Reduce size while keeping text sharp" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'rotate') {
+    return (
+      <>
+        <PdfField label="Rotation Angle">
+          <SegmentedControl
+            options={['90', '180', '270']}
+            selected={rotationAngle}
+            onSelect={setRotationAngle}
+            formatLabel={(value) => `${value}°`}
+            columns={3}
+          />
+        </PdfField>
+        <PdfField label="Target Pages">
+          <input className="tool-input" value="All pages" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'remove') {
+    return (
+      <>
+        <PdfField label="Pages to Remove">
+          <input className="tool-input" value={removePages} onChange={(event) => setRemovePages(event.target.value)} />
+        </PdfField>
+        <PdfField label="Remaining Output">
+          <input className="tool-input" value="A new PDF will be generated without selected pages" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'reorder') {
+    return (
+      <>
+        <PdfField label="New Page Order">
+          <input className="tool-input" value={pageOrder} onChange={(event) => setPageOrder(event.target.value)} />
+        </PdfField>
+        <PdfField label="Hint">
+          <input className="tool-input" value="Example: 1, 3, 2, 4" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <PdfField label="Number Position">
+        <select className="tool-select" value={numberPosition} onChange={(event) => setNumberPosition(event.target.value)}>
+          <option value="top-left">Top Left</option>
+          <option value="top-right">Top Right</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="bottom-right">Bottom Right</option>
+        </select>
+      </PdfField>
+      <PdfField label="Start Number">
+        <input className="tool-input" value={startNumber} onChange={(event) => setStartNumber(event.target.value)} />
+      </PdfField>
+    </>
+  )
+}
+
+function PdfField({ label, children }) {
+  return (
+    <div className="pdf-tool-field">
+      <label className="form-field__label">{label}</label>
+      {children}
     </div>
   )
 }
@@ -1301,8 +1553,22 @@ function currentLocalDateTime() {
   return local.toISOString().slice(0, 16)
 }
 
+function getPdfPrimaryAction(operationId) {
+  if (operationId === 'merge') return 'Merge PDFs'
+  if (operationId === 'split') return 'Split PDF'
+  if (operationId === 'compress') return 'Compress PDF'
+  if (operationId === 'rotate') return 'Rotate Pages'
+  if (operationId === 'remove') return 'Remove Pages'
+  if (operationId === 'reorder') return 'Reorder Pages'
+  return 'Add Page Numbers'
+}
+
 function safeColor(value) {
   return /^#?[0-9a-fA-F]{6}$/.test(value) ? (value.startsWith('#') ? value : `#${value}`) : '#0ea5e9'
+}
+
+function formatFileSize(size) {
+  return formatBytes(size)
 }
 
 function formatBytes(size) {
