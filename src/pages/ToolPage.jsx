@@ -11,14 +11,23 @@ import {
   convertDateToTimestamp,
   convertNumberBase,
   convertTimestampToDate,
+  excelToPdf,
   escapeValue,
   fetchTextStats,
   formatJson,
   generateHash,
   generateUuid,
+  htmlToPdf,
   inspectFile,
+  jpgToPdf,
   mergePdfFiles,
   minifyJson,
+  pdfToExcel,
+  pdfToJpg,
+  pdfToPdfA,
+  pdfToPowerpoint,
+  pdfToWord,
+  powerpointToPdf,
   removePdfPages as removePdfPagesApi,
   reorderPdfPages as reorderPdfPagesApi,
   rotatePdfFile,
@@ -26,6 +35,7 @@ import {
   transformTextCase,
   validateJson,
   validateUuid,
+  wordToPdf,
 } from '../services/devToolApi'
 
 const HASH_ALGORITHMS = ['SHA-256', 'SHA-512', 'SHA-1', 'MD5']
@@ -76,6 +86,7 @@ function PdfTool({ page }) {
   const [pageOrder, setPageOrder] = useState('1, 3, 2, 4')
   const [numberPosition, setNumberPosition] = useState('bottom-right')
   const [startNumber, setStartNumber] = useState('1')
+  const [imageDpi, setImageDpi] = useState('144')
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('neutral')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -83,6 +94,7 @@ function PdfTool({ page }) {
   const activeOperation = page.operations.find((operation) => operation.id === activeOperationId) ?? page.operations[0]
   const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
   const fileInputId = 'pdf-tool-upload-input'
+  const uploadPanel = getPdfUploadPanel(activeOperationId)
 
   const updateMessage = (nextMessage, tone = 'neutral') => {
     setMessage(nextMessage)
@@ -103,7 +115,7 @@ function PdfTool({ page }) {
 
   const handleProcess = async () => {
     if (!selectedFiles.length) {
-      updateMessage('Choose at least one PDF file first.')
+      updateMessage(`Choose at least one ${uploadPanel.entityLabel} first.`)
       return
     }
 
@@ -112,8 +124,13 @@ function PdfTool({ page }) {
       return
     }
 
-    if (activeOperationId !== 'merge' && selectedFiles.length !== 1) {
-      updateMessage('Select exactly one PDF file for this operation.')
+    if (activeOperationId === 'jpg-to-pdf' && selectedFiles.length < 1) {
+      updateMessage('Select at least one JPG image to convert.')
+      return
+    }
+
+    if (!supportsMultipleFiles(activeOperationId) && selectedFiles.length !== 1) {
+      updateMessage(`Select exactly one ${uploadPanel.entityLabel} for this operation.`)
       return
     }
 
@@ -147,6 +164,46 @@ function PdfTool({ page }) {
         updateMessage(response.status.description, 'success')
       } else if (activeOperationId === 'numbers') {
         const response = await addPdfPageNumbers(selectedFiles[0].file, numberPosition, startNumber)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'jpg-to-pdf') {
+        const response = await jpgToPdf(selectedFiles.map((item) => item.file))
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'pdf-to-jpg') {
+        const response = await pdfToJpg(selectedFiles[0].file, imageDpi)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'html-to-pdf') {
+        const response = await htmlToPdf(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'pdf-to-pdfa') {
+        const response = await pdfToPdfA(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'word-to-pdf') {
+        const response = await wordToPdf(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'powerpoint-to-pdf') {
+        const response = await powerpointToPdf(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'excel-to-pdf') {
+        const response = await excelToPdf(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'pdf-to-word') {
+        const response = await pdfToWord(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'pdf-to-powerpoint') {
+        const response = await pdfToPowerpoint(selectedFiles[0].file)
+        await downloadPdfBatchResponse(response.data, activeOperationId)
+        updateMessage(response.status.description, 'success')
+      } else if (activeOperationId === 'pdf-to-excel') {
+        const response = await pdfToExcel(selectedFiles[0].file)
         await downloadPdfBatchResponse(response.data, activeOperationId)
         updateMessage(response.status.description, 'success')
       }
@@ -213,27 +270,27 @@ function PdfTool({ page }) {
             <input
               id={fileInputId}
               type="file"
-              accept="application/pdf"
-              multiple
+              accept={getPdfAccept(activeOperationId)}
+              multiple={supportsMultipleFiles(activeOperationId)}
               className="sr-only"
               onChange={handleFilesChange}
             />
             <div className="upload-dropzone upload-dropzone--pdf">
               {selectedFiles.length ? (
                 <div className="pdf-tool-selection">
-                  <div className="pdf-tool-selection__summary">
-                    <div>
-                      <div className="pdf-tool-selection__eyebrow">Selected PDF Files</div>
-                      <div className="pdf-tool-selection__title">
-                        {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} ready
-                      </div>
+                      <div className="pdf-tool-selection__summary">
+                        <div>
+                          <div className="pdf-tool-selection__eyebrow">{uploadPanel.selectionEyebrow}</div>
+                          <div className="pdf-tool-selection__title">
+                            {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} ready
+                          </div>
                       <div className="pdf-tool-selection__meta">
                         {formatFileSize(totalSize)} total size
                       </div>
                     </div>
 
                     <label htmlFor={fileInputId} className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
-                      {page.uploadPanel.action}
+                      {uploadPanel.action}
                     </label>
                   </div>
 
@@ -241,7 +298,7 @@ function PdfTool({ page }) {
                     <div className="pdf-tool-config">
                       <div className="pdf-tool-config__title">Operation Setup</div>
                       <div className="pdf-tool-config__subtitle">
-                        Adjust the options for {activeOperation.label.toLowerCase()} before processing.
+                        {uploadPanel.setupHint}
                       </div>
                       <div className="pdf-tool-config__fields">
                         {renderPdfOperationControls({
@@ -254,6 +311,7 @@ function PdfTool({ page }) {
                           pageOrder,
                           numberPosition,
                           startNumber,
+                          imageDpi,
                           setSplitMode,
                           setSplitRange,
                           setCompressionLevel,
@@ -262,6 +320,7 @@ function PdfTool({ page }) {
                           setPageOrder,
                           setNumberPosition,
                           setStartNumber,
+                          setImageDpi,
                         })}
                       </div>
                     </div>
@@ -269,9 +328,9 @@ function PdfTool({ page }) {
                     <div className="pdf-tool-file-list">
                       <div className="pdf-tool-config__title">Files Queue</div>
                       <div className="pdf-tool-config__subtitle">
-                        {activeOperationId === 'merge' || activeOperationId === 'reorder'
+                        {supportsOrderedQueue(activeOperationId)
                           ? 'The order below will be used during processing.'
-                          : 'Review the PDFs included in this operation.'}
+                          : `Review the ${uploadPanel.entityLabelPlural} included in this operation.`}
                       </div>
                       <div className="pdf-tool-files">
                         {selectedFiles.map((file, index) => (
@@ -315,17 +374,17 @@ function PdfTool({ page }) {
               ) : (
                 <div className="pdf-tool-upload-empty">
                   <div className="upload-dropzone__icon">⇪</div>
-                  <div className="upload-dropzone__title">{page.uploadPanel.title}</div>
-                  <div className="upload-dropzone__hint">{page.uploadPanel.hint}</div>
+                  <div className="upload-dropzone__title">{uploadPanel.title}</div>
+                  <div className="upload-dropzone__hint">{uploadPanel.hint}</div>
                   <div className="pdf-tool-bullets">
-                    {page.uploadPanel.bullets.map((bullet) => (
+                    {uploadPanel.bullets.map((bullet) => (
                       <span key={bullet} className="pdf-tool-bullet">
                         {bullet}
                       </span>
                     ))}
                   </div>
                   <label htmlFor={fileInputId} className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
-                    {page.uploadPanel.action}
+                    {uploadPanel.action}
                   </label>
                 </div>
               )}
@@ -365,6 +424,7 @@ function renderPdfOperationControls({
   pageOrder,
   numberPosition,
   startNumber,
+  imageDpi,
   setSplitMode,
   setSplitRange,
   setCompressionLevel,
@@ -373,6 +433,7 @@ function renderPdfOperationControls({
   setPageOrder,
   setNumberPosition,
   setStartNumber,
+  setImageDpi,
 }) {
   if (activeOperationId === 'merge') {
     return (
@@ -473,6 +534,90 @@ function renderPdfOperationControls({
         </PdfField>
         <PdfField label="Hint">
           <input className="tool-input" value="Example: 1, 3, 2, 4" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'jpg-to-pdf') {
+    return (
+      <>
+        <PdfField label="Page Layout">
+          <input className="tool-input" value="Each image will be placed on its own PDF page" readOnly />
+        </PdfField>
+        <PdfField label="Supported Input">
+          <input className="tool-input" value="JPG and JPEG images" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'pdf-to-jpg') {
+    return (
+      <>
+        <PdfField label="Image Quality">
+          <SegmentedControl
+            options={['96', '144', '300']}
+            selected={imageDpi}
+            onSelect={setImageDpi}
+            formatLabel={(value) => `${value} DPI`}
+            columns={3}
+          />
+        </PdfField>
+        <PdfField label="Output Format">
+          <input className="tool-input" value="One JPG image per PDF page" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'html-to-pdf') {
+    return (
+      <>
+        <PdfField label="Rendering Mode">
+          <input className="tool-input" value="HTML document rendered as printable PDF" readOnly />
+        </PdfField>
+        <PdfField label="Supported Input">
+          <input className="tool-input" value=".html and .htm files" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (['word-to-pdf', 'powerpoint-to-pdf', 'excel-to-pdf'].includes(activeOperationId)) {
+    return (
+      <>
+        <PdfField label="Conversion Engine">
+          <input className="tool-input" value="Backend office conversion pipeline" readOnly />
+        </PdfField>
+        <PdfField label="Output">
+          <input className="tool-input" value="A PDF file matching the uploaded document" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (['pdf-to-word', 'pdf-to-powerpoint', 'pdf-to-excel'].includes(activeOperationId)) {
+    return (
+      <>
+        <PdfField label="Conversion Engine">
+          <input className="tool-input" value="Backend office export pipeline" readOnly />
+        </PdfField>
+        <PdfField label="Compatibility Note">
+          <input className="tool-input" value="Best results depend on backend LibreOffice support" readOnly />
+        </PdfField>
+      </>
+    )
+  }
+
+  if (activeOperationId === 'pdf-to-pdfa') {
+    return (
+      <>
+        <PdfField label="Archival Standard">
+          <input className="tool-input" value="PDF/A-1 compatible archival output" readOnly />
+        </PdfField>
+        <PdfField label="Use Case">
+          <input className="tool-input" value="Long-term preservation and compliance workflows" readOnly />
         </PdfField>
       </>
     )
@@ -1646,7 +1791,168 @@ function getPdfPrimaryAction(operationId) {
   if (operationId === 'rotate') return 'Rotate Pages'
   if (operationId === 'remove') return 'Remove Pages'
   if (operationId === 'reorder') return 'Reorder Pages'
-  return 'Add Page Numbers'
+  if (operationId === 'numbers') return 'Add Page Numbers'
+  if (operationId === 'jpg-to-pdf') return 'Convert to PDF'
+  if (operationId === 'word-to-pdf') return 'Convert Word File'
+  if (operationId === 'powerpoint-to-pdf') return 'Convert Slides'
+  if (operationId === 'excel-to-pdf') return 'Convert Spreadsheet'
+  if (operationId === 'html-to-pdf') return 'Render PDF'
+  if (operationId === 'pdf-to-jpg') return 'Export Images'
+  if (operationId === 'pdf-to-word') return 'Convert to Word'
+  if (operationId === 'pdf-to-powerpoint') return 'Convert to PowerPoint'
+  if (operationId === 'pdf-to-excel') return 'Convert to Excel'
+  if (operationId === 'pdf-to-pdfa') return 'Create PDF/A'
+  return 'Process Files'
+}
+
+function supportsMultipleFiles(operationId) {
+  return operationId === 'merge' || operationId === 'jpg-to-pdf'
+}
+
+function supportsOrderedQueue(operationId) {
+  return operationId === 'merge' || operationId === 'reorder' || operationId === 'jpg-to-pdf'
+}
+
+function getPdfAccept(operationId) {
+  if (operationId === 'jpg-to-pdf') return '.jpg,.jpeg,image/jpeg'
+  if (operationId === 'word-to-pdf') {
+    return '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  }
+  if (operationId === 'powerpoint-to-pdf') {
+    return '.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  }
+  if (operationId === 'excel-to-pdf') {
+    return '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  }
+  if (operationId === 'html-to-pdf') return '.html,.htm,text/html'
+  return 'application/pdf'
+}
+
+function getPdfUploadPanel(operationId) {
+  const defaults = {
+    title: 'Drop your PDF files here',
+    hint: 'or click to browse from your computer',
+    bullets: ['PDF only', 'Up to 100MB', 'Processed securely'],
+    action: 'Choose PDF Files',
+    entityLabel: 'PDF file',
+    entityLabelPlural: 'PDF files',
+    selectionEyebrow: 'Selected PDF Files',
+    setupHint: 'Adjust the options for this PDF workflow before processing.',
+  }
+
+  if (operationId === 'jpg-to-pdf') {
+    return {
+      ...defaults,
+      title: 'Drop your JPG files here',
+      bullets: ['JPG only', 'One image per page', 'Processed securely'],
+      action: 'Choose JPG Files',
+      entityLabel: 'JPG file',
+      entityLabelPlural: 'JPG files',
+      selectionEyebrow: 'Selected JPG Files',
+      setupHint: 'Review the image order before generating a combined PDF.',
+    }
+  }
+
+  if (operationId === 'word-to-pdf') {
+    return {
+      ...defaults,
+      title: 'Drop your Word document here',
+      bullets: ['DOC or DOCX', 'Single document', 'Processed securely'],
+      action: 'Choose Word File',
+      entityLabel: 'Word document',
+      entityLabelPlural: 'Word documents',
+      selectionEyebrow: 'Selected Word File',
+      setupHint: 'The backend will convert your document into a PDF output.',
+    }
+  }
+
+  if (operationId === 'powerpoint-to-pdf') {
+    return {
+      ...defaults,
+      title: 'Drop your PowerPoint file here',
+      bullets: ['PPT or PPTX', 'Single presentation', 'Processed securely'],
+      action: 'Choose PowerPoint File',
+      entityLabel: 'PowerPoint file',
+      entityLabelPlural: 'PowerPoint files',
+      selectionEyebrow: 'Selected PowerPoint File',
+      setupHint: 'Your slides will be exported into a PDF document.',
+    }
+  }
+
+  if (operationId === 'excel-to-pdf') {
+    return {
+      ...defaults,
+      title: 'Drop your Excel sheet here',
+      bullets: ['XLS or XLSX', 'Single workbook', 'Processed securely'],
+      action: 'Choose Excel File',
+      entityLabel: 'Excel file',
+      entityLabelPlural: 'Excel files',
+      selectionEyebrow: 'Selected Excel File',
+      setupHint: 'The backend will export the workbook content as PDF.',
+    }
+  }
+
+  if (operationId === 'html-to-pdf') {
+    return {
+      ...defaults,
+      title: 'Drop your HTML file here',
+      bullets: ['HTML only', 'Print-ready output', 'Processed securely'],
+      action: 'Choose HTML File',
+      entityLabel: 'HTML file',
+      entityLabelPlural: 'HTML files',
+      selectionEyebrow: 'Selected HTML File',
+      setupHint: 'The HTML document will be rendered into a printable PDF.',
+    }
+  }
+
+  if (operationId === 'pdf-to-jpg') {
+    return {
+      ...defaults,
+      action: 'Choose PDF File',
+      entityLabel: 'PDF file',
+      entityLabelPlural: 'PDF files',
+      selectionEyebrow: 'Selected PDF File',
+      setupHint: 'Choose the export quality before generating JPG pages.',
+    }
+  }
+
+  if (operationId === 'pdf-to-word') {
+    return {
+      ...defaults,
+      action: 'Choose PDF File',
+      selectionEyebrow: 'Selected PDF File',
+      setupHint: 'The backend will convert this PDF into an editable Word document.',
+    }
+  }
+
+  if (operationId === 'pdf-to-powerpoint') {
+    return {
+      ...defaults,
+      action: 'Choose PDF File',
+      selectionEyebrow: 'Selected PDF File',
+      setupHint: 'The backend will convert this PDF into a PowerPoint presentation.',
+    }
+  }
+
+  if (operationId === 'pdf-to-excel') {
+    return {
+      ...defaults,
+      action: 'Choose PDF File',
+      selectionEyebrow: 'Selected PDF File',
+      setupHint: 'The backend will convert this PDF into an Excel workbook.',
+    }
+  }
+
+  if (operationId === 'pdf-to-pdfa') {
+    return {
+      ...defaults,
+      action: 'Choose PDF File',
+      selectionEyebrow: 'Selected PDF File',
+      setupHint: 'This workflow creates an archival PDF/A version of your document.',
+    }
+  }
+
+  return defaults
 }
 
 async function downloadPdfBatchResponse(batchResponse, operationId) {

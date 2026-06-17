@@ -229,3 +229,114 @@ export function addPdfPageNumbers(file, position, startNumber) {
     isFormData: true,
   })
 }
+
+export function jpgToPdf(files) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+
+  return apiRequest('/api/pdf/jpg-to-pdf', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function pdfToJpg(file, dpi) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('dpi', dpi)
+
+  return apiRequest('/api/pdf/pdf-to-jpg', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function htmlToPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/html-to-pdf', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function pdfToPdfA(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/pdf-to-pdfa', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function wordToPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/word-to-pdf', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function powerpointToPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/powerpoint-to-pdf', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function excelToPdf(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/excel-to-pdf', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function pdfToWord(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/pdf-to-word', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function pdfToPowerpoint(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/pdf-to-powerpoint', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
+
+export function pdfToExcel(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return apiRequest('/api/pdf/pdf-to-excel', {
+    method: 'POST',
+    body: formData,
+    isFormData: true,
+  })
+}
