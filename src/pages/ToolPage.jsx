@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import JSZip from 'jszip'
+import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
 import { SurfaceCard } from '../components/SurfaceCard'
 import { ToolHeader } from '../components/ToolHeader'
 import {
@@ -68,18 +70,71 @@ function PdfTool({ page }) {
   const [pageOrder, setPageOrder] = useState('1, 3, 2, 4')
   const [numberPosition, setNumberPosition] = useState('bottom-right')
   const [startNumber, setStartNumber] = useState('1')
+  const [message, setMessage] = useState('')
+  const [messageTone, setMessageTone] = useState('neutral')
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const activeOperation = page.operations.find((operation) => operation.id === activeOperationId) ?? page.operations[0]
   const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0)
+  const fileInputId = 'pdf-tool-upload-input'
+
+  const updateMessage = (nextMessage, tone = 'neutral') => {
+    setMessage(nextMessage)
+    setMessageTone(tone)
+  }
 
   const handleFilesChange = (event) => {
     const files = Array.from(event.target.files || []).map((file) => ({
+      file,
       name: file.name,
       size: file.size,
       modifiedAt: new Date(file.lastModified).toLocaleDateString(),
     }))
 
     setSelectedFiles(files)
+    updateMessage('')
+  }
+
+  const handleProcess = async () => {
+    if (!selectedFiles.length) {
+      updateMessage('Choose at least one PDF file first.')
+      return
+    }
+
+    if (activeOperationId === 'merge' && selectedFiles.length < 2) {
+      updateMessage('Select at least two PDF files to merge.')
+      return
+    }
+
+    setIsProcessing(true)
+    updateMessage('')
+
+    try {
+      let outputs = []
+
+      if (activeOperationId === 'merge') {
+        outputs = [await mergePdfFiles(selectedFiles)]
+      } else if (activeOperationId === 'split') {
+        outputs = await splitPdfFiles(selectedFiles, splitMode, splitRange)
+      } else if (activeOperationId === 'compress') {
+        outputs = await compressPdfFiles(selectedFiles, compressionLevel)
+      } else if (activeOperationId === 'rotate') {
+        outputs = await rotatePdfFiles(selectedFiles, rotationAngle)
+      } else if (activeOperationId === 'remove') {
+        outputs = await removePdfPages(selectedFiles, removePages)
+      } else if (activeOperationId === 'reorder') {
+        outputs = await reorderPdfPages(selectedFiles, pageOrder)
+      } else if (activeOperationId === 'numbers') {
+        outputs = await addPdfPageNumbers(selectedFiles, numberPosition, startNumber)
+      }
+
+      await downloadPdfOutputs(outputs, activeOperationId)
+      updateMessage(getPdfSuccessMessage(activeOperationId, outputs.length), 'success')
+    } catch (error) {
+      updateMessage(error.message || `Unable to process ${activeOperation.label.toLowerCase()}.`, 'error')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -135,14 +190,15 @@ function PdfTool({ page }) {
           >
             <p className="pdf-tool-workspace__description">{activeOperation.description}</p>
 
-            <label className="upload-dropzone upload-dropzone--pdf">
-              <input
-                type="file"
-                accept="application/pdf"
-                multiple
-                className="sr-only"
-                onChange={handleFilesChange}
-              />
+            <input
+              id={fileInputId}
+              type="file"
+              accept="application/pdf"
+              multiple
+              className="sr-only"
+              onChange={handleFilesChange}
+            />
+            <div className="upload-dropzone upload-dropzone--pdf">
               {selectedFiles.length ? (
                 <div className="pdf-tool-selection">
                   <div className="pdf-tool-selection__summary">
@@ -156,9 +212,9 @@ function PdfTool({ page }) {
                       </div>
                     </div>
 
-                    <span className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
+                    <label htmlFor={fileInputId} className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
                       {page.uploadPanel.action}
-                    </span>
+                    </label>
                   </div>
 
                   <div className="pdf-tool-setup-grid">
@@ -214,17 +270,27 @@ function PdfTool({ page }) {
                   </div>
 
                   <div className="pdf-tool-footer">
-                    <button type="button" className="tool-action tool-action--primary">
-                      {getPdfPrimaryAction(activeOperationId)}
+                    <button
+                      type="button"
+                      className="tool-action tool-action--primary"
+                      onClick={handleProcess}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Processing...' : getPdfPrimaryAction(activeOperationId)}
                     </button>
                     <button
                       type="button"
                       className="tool-icon-button tool-icon-button--wide"
-                      onClick={() => setSelectedFiles([])}
+                      onClick={() => {
+                        setSelectedFiles([])
+                        updateMessage('')
+                      }}
                     >
                       Reset
                     </button>
                   </div>
+
+                  <StatusMessage message={message} tone={messageTone} />
                 </div>
               ) : (
                 <div className="pdf-tool-upload-empty">
@@ -238,12 +304,12 @@ function PdfTool({ page }) {
                       </span>
                     ))}
                   </div>
-                  <span className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
+                  <label htmlFor={fileInputId} className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
                     {page.uploadPanel.action}
-                  </span>
+                  </label>
                 </div>
               )}
-            </label>
+            </div>
           </SurfaceCard>
         </div>
 
@@ -1561,6 +1627,288 @@ function getPdfPrimaryAction(operationId) {
   if (operationId === 'remove') return 'Remove Pages'
   if (operationId === 'reorder') return 'Reorder Pages'
   return 'Add Page Numbers'
+}
+
+function getPdfSuccessMessage(operationId, outputCount) {
+  if (operationId === 'merge') return 'Merged PDF downloaded successfully.'
+  if (operationId === 'split') return outputCount > 1 ? 'Split PDF ZIP downloaded successfully.' : 'Split PDF downloaded successfully.'
+  if (operationId === 'compress') return outputCount > 1 ? 'Compressed PDF ZIP downloaded successfully.' : 'Compressed PDF downloaded successfully.'
+  if (operationId === 'rotate') return outputCount > 1 ? 'Rotated PDF ZIP downloaded successfully.' : 'Rotated PDF downloaded successfully.'
+  if (operationId === 'remove') return outputCount > 1 ? 'Updated PDF ZIP downloaded successfully.' : 'Updated PDF downloaded successfully.'
+  if (operationId === 'reorder') return outputCount > 1 ? 'Reordered PDF ZIP downloaded successfully.' : 'Reordered PDF downloaded successfully.'
+  return outputCount > 1 ? 'Page-numbered PDF ZIP downloaded successfully.' : 'Page-numbered PDF downloaded successfully.'
+}
+
+async function mergePdfFiles(selectedFiles) {
+  const mergedPdf = await PDFDocument.create()
+
+  for (const item of selectedFiles) {
+    const sourcePdf = await loadPdfDocument(item.file)
+    const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices())
+    copiedPages.forEach((page) => mergedPdf.addPage(page))
+  }
+
+  return {
+    name: 'merged-document.pdf',
+    bytes: await mergedPdf.save(),
+  }
+}
+
+async function splitPdfFiles(selectedFiles, splitMode, splitRange) {
+  const outputs = []
+
+  for (const item of selectedFiles) {
+    const sourcePdf = await loadPdfDocument(item.file)
+    const pageCount = sourcePdf.getPageCount()
+    const groups = splitMode === 'every-page'
+      ? sourcePdf.getPageIndices().map((index) => [index + 1, index + 1])
+      : parsePageRanges(splitRange, pageCount)
+
+    for (const [groupIndex, [startPage, endPage]] of groups.entries()) {
+      const nextPdf = await PDFDocument.create()
+      const pageIndexes = range(startPage - 1, endPage - 1)
+      const copiedPages = await nextPdf.copyPages(sourcePdf, pageIndexes)
+      copiedPages.forEach((page) => nextPdf.addPage(page))
+
+      outputs.push({
+        name: `${fileStem(item.name)}-part-${groupIndex + 1}.pdf`,
+        bytes: await nextPdf.save(),
+      })
+    }
+  }
+
+  return outputs
+}
+
+async function compressPdfFiles(selectedFiles, compressionLevel) {
+  const outputs = []
+
+  for (const item of selectedFiles) {
+    const sourcePdf = await loadPdfDocument(item.file)
+    const rebuiltPdf = await PDFDocument.create()
+    const copiedPages = await rebuiltPdf.copyPages(sourcePdf, sourcePdf.getPageIndices())
+    copiedPages.forEach((page) => rebuiltPdf.addPage(page))
+
+    const bytes = await rebuiltPdf.save({
+      useObjectStreams: compressionLevel !== 'light',
+      addDefaultPage: false,
+      objectsPerTick: compressionLevel === 'strong' ? 100 : 50,
+    })
+
+    outputs.push({
+      name: `${fileStem(item.name)}-compressed.pdf`,
+      bytes,
+    })
+  }
+
+  return outputs
+}
+
+async function rotatePdfFiles(selectedFiles, rotationAngle) {
+  const outputs = []
+  const angle = Number(rotationAngle)
+
+  for (const item of selectedFiles) {
+    const pdf = await loadPdfDocument(item.file)
+    pdf.getPages().forEach((page) => page.setRotation(degrees(angle)))
+
+    outputs.push({
+      name: `${fileStem(item.name)}-rotated.pdf`,
+      bytes: await pdf.save(),
+    })
+  }
+
+  return outputs
+}
+
+async function removePdfPages(selectedFiles, removePages) {
+  const outputs = []
+
+  for (const item of selectedFiles) {
+    const pdf = await loadPdfDocument(item.file)
+    const pagesToRemove = parsePageNumberList(removePages, pdf.getPageCount())
+
+    if (pagesToRemove.length >= pdf.getPageCount()) {
+      throw new Error('At least one page must remain after removal.')
+    }
+
+    pagesToRemove
+      .slice()
+      .sort((left, right) => right - left)
+      .forEach((pageNumber) => pdf.removePage(pageNumber - 1))
+
+    outputs.push({
+      name: `${fileStem(item.name)}-pages-removed.pdf`,
+      bytes: await pdf.save(),
+    })
+  }
+
+  return outputs
+}
+
+async function reorderPdfPages(selectedFiles, pageOrder) {
+  const outputs = []
+
+  for (const item of selectedFiles) {
+    const sourcePdf = await loadPdfDocument(item.file)
+    const order = parsePageOrder(pageOrder, sourcePdf.getPageCount())
+    const nextPdf = await PDFDocument.create()
+    const copiedPages = await nextPdf.copyPages(sourcePdf, order.map((pageNumber) => pageNumber - 1))
+    copiedPages.forEach((page) => nextPdf.addPage(page))
+
+    outputs.push({
+      name: `${fileStem(item.name)}-reordered.pdf`,
+      bytes: await nextPdf.save(),
+    })
+  }
+
+  return outputs
+}
+
+async function addPdfPageNumbers(selectedFiles, numberPosition, startNumber) {
+  const outputs = []
+  const initialNumber = Number(startNumber)
+
+  if (!Number.isInteger(initialNumber) || initialNumber < 0) {
+    throw new Error('Start number must be a valid non-negative integer.')
+  }
+
+  for (const item of selectedFiles) {
+    const pdf = await loadPdfDocument(item.file)
+    const font = await pdf.embedFont(StandardFonts.Helvetica)
+
+    pdf.getPages().forEach((page, index) => {
+      const label = String(initialNumber + index)
+      const { width, height } = page.getSize()
+      const fontSize = 12
+      const textWidth = font.widthOfTextAtSize(label, fontSize)
+      const { x, y } = getPageNumberCoordinates(numberPosition, width, height, textWidth)
+
+      page.drawText(label, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0.12, 0.16, 0.27),
+      })
+    })
+
+    outputs.push({
+      name: `${fileStem(item.name)}-numbered.pdf`,
+      bytes: await pdf.save(),
+    })
+  }
+
+  return outputs
+}
+
+async function downloadPdfOutputs(outputs, operationId) {
+  if (outputs.length === 1) {
+    downloadFile(new Blob([outputs[0].bytes], { type: 'application/pdf' }), outputs[0].name)
+    return
+  }
+
+  const zip = new JSZip()
+  outputs.forEach((output) => {
+    zip.file(output.name, output.bytes)
+  })
+
+  const zipBlob = await zip.generateAsync({ type: 'blob' })
+  downloadFile(zipBlob, `${operationId}-results.zip`)
+}
+
+async function loadPdfDocument(file) {
+  return PDFDocument.load(await file.arrayBuffer())
+}
+
+function parsePageRanges(value, pageCount) {
+  const segments = value
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  if (!segments.length) {
+    throw new Error('Enter at least one page range.')
+  }
+
+  return segments.map((segment) => {
+    if (segment.includes('-')) {
+      const [rawStart, rawEnd] = segment.split('-').map((part) => part.trim())
+      const start = Number(rawStart)
+      const end = Number(rawEnd)
+
+      if (!isValidPageNumber(start, pageCount) || !isValidPageNumber(end, pageCount) || start > end) {
+        throw new Error(`Invalid page range: ${segment}`)
+      }
+
+      return [start, end]
+    }
+
+    const page = Number(segment)
+    if (!isValidPageNumber(page, pageCount)) {
+      throw new Error(`Invalid page number: ${segment}`)
+    }
+
+    return [page, page]
+  })
+}
+
+function parsePageNumberList(value, pageCount) {
+  return Array.from(
+    new Set(
+      parsePageRanges(value, pageCount).flatMap(([start, end]) => range(start, end)),
+    ),
+  ).sort((left, right) => left - right)
+}
+
+function parsePageOrder(value, pageCount) {
+  const order = value
+    .split(',')
+    .map((segment) => Number(segment.trim()))
+    .filter((pageNumber) => Number.isInteger(pageNumber))
+
+  if (order.length !== pageCount) {
+    throw new Error(`Page order must contain exactly ${pageCount} page numbers.`)
+  }
+
+  const uniqueOrder = new Set(order)
+  if (uniqueOrder.size !== pageCount || order.some((pageNumber) => !isValidPageNumber(pageNumber, pageCount))) {
+    throw new Error('Page order must include each page exactly once.')
+  }
+
+  return order
+}
+
+function getPageNumberCoordinates(position, width, height, textWidth) {
+  const margin = 24
+
+  if (position === 'top-left') return { x: margin, y: height - margin }
+  if (position === 'top-right') return { x: width - textWidth - margin, y: height - margin }
+  if (position === 'bottom-left') return { x: margin, y: margin }
+  return { x: width - textWidth - margin, y: margin }
+}
+
+function fileStem(name) {
+  return name.replace(/\.pdf$/i, '') || 'document'
+}
+
+function isValidPageNumber(value, pageCount) {
+  return Number.isInteger(value) && value >= 1 && value <= pageCount
+}
+
+function range(start, end) {
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index)
+}
+
+function downloadFile(blob, fileName) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 function safeColor(value) {

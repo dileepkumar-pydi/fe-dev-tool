@@ -954,6 +954,9 @@
 }
 
 .tool-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   min-height: 38px;
   font-size: 0.82rem;
@@ -1160,6 +1163,7 @@
   align-self: center;
   justify-content: center;
   min-width: 170px;
+  cursor: pointer;
 }
 
 .status-message {
@@ -1174,6 +1178,10 @@
 
 .status-message--success {
   color: #2c7a5d;
+}
+
+.status-message--error {
+  color: #c24135;
 }
 
 .output-item {
