@@ -1,4 +1,6 @@
+import { WebFormatter, JwtDecoder, RegexTester, DiffChecker } from './AdditionalTools'
 import { useState } from 'react'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 import JSZip from 'jszip'
 import { SurfaceCard } from '../components/SurfaceCard'
 import { ToolHeader } from '../components/ToolHeader'
@@ -48,16 +50,20 @@ const BASE_OPTIONS = [
   { label: 'Hexadecimal (Base 16)', value: 16 },
 ]
 
-export function ToolPage({ page }) {
+export function ToolPage({ page, operation = '' }) {
+  if (page.id === 'pdf') return <div className="tool-page"><PdfTool page={page} initialOperation={operation} /></div>
   return (
     <div className="tool-page">
       <ToolHeader
         category={page.category}
         title={page.title}
-        badge={page.badge}
         description={page.description}
       />
 
+      {page.id === 'web' ? <WebFormatter /> : null}
+      {page.id === 'jwt' ? <JwtDecoder /> : null}
+      {page.id === 'regex' ? <RegexTester /> : null}
+      {page.id === 'diff' ? <DiffChecker /> : null}
       {page.id === 'base64' ? <Base64Tool page={page} /> : null}
       {page.id === 'json' ? <JsonTool page={page} /> : null}
       {page.id === 'hash' ? <HashTool page={page} /> : null}
@@ -68,15 +74,13 @@ export function ToolPage({ page }) {
       {page.id === 'uuid' ? <UuidTool /> : null}
       {page.id === 'color' ? <ColorTool page={page} /> : null}
       {page.id === 'file' ? <FileTool page={page} /> : null}
-      {page.id === 'pdf' ? <PdfTool page={page} /> : null}
-
-      {page.exampleSection ? <ExampleSection section={page.exampleSection} /> : null}
     </div>
   )
 }
 
-function PdfTool({ page }) {
-  const [activeOperationId, setActiveOperationId] = useState(page.operations[0]?.id ?? '')
+function PdfTool({ page, initialOperation }) {
+  const activeOperationId = initialOperation
+  const [isDragging, setIsDragging] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
   const [splitMode, setSplitMode] = useState('range')
   const [splitRange, setSplitRange] = useState('1-3, 5')
@@ -101,16 +105,20 @@ function PdfTool({ page }) {
     setMessageTone(tone)
   }
 
-  const handleFilesChange = (event) => {
-    const files = Array.from(event.target.files || []).map((file) => ({
+  const selectFiles = (fileList) => {
+    setIsDragging(false)
+    const files = Array.from(fileList || []).filter((file) => {
+      const extensions = getPdfAccept(activeOperationId).split(',').map((value) => value.trim())
+      return extensions.some((ext) => file.name.toLowerCase().endsWith(ext) || file.type === ext)
+    }).map((file) => ({
       file,
       name: file.name,
       size: file.size,
       modifiedAt: new Date(file.lastModified).toLocaleDateString(),
     }))
 
-    setSelectedFiles(files)
-    updateMessage('')
+    setSelectedFiles(supportsMultipleFiles(activeOperationId) ? files : files.slice(0, 1))
+    updateMessage(files.length ? '' : 'Choose a file in a supported format.', files.length ? 'neutral' : 'error')
   }
 
   const handleProcess = async () => {
@@ -214,26 +222,24 @@ function PdfTool({ page }) {
     }
   }
 
+  const chooseOperation = (id) => {
+    window.location.assign(toHash(id ? `${APP_ROUTES.pdf}/${id}` : APP_ROUTES.pdf))
+  }
+
+  if (!activeOperationId) return <div className="pdf-tool-home">
+    <ToolHeader category={page.category} title={page.title} description="Choose an operation to merge, edit, or convert your documents." />
+    <div className="pdf-tool-home__grid">{page.operations.map((operation, index) =>
+      <button type="button" key={operation.id} className={`pdf-operation-card pdf-operation-card--${index % 7}`} onClick={() => chooseOperation(operation.id)}>
+        <span className="pdf-operation-card__icon" aria-hidden="true">{['▤', '✂', '↙', '↻', '×', '⇅', '#'][index % 7]}</span>
+        <strong>{operation.label}</strong><p>{operation.description}</p><span className="pdf-operation-card__cta" aria-hidden="true">↗</span>
+      </button>)}</div>
+    <p className="pdf-tool-home__note">Files are uploaded to the configured API for processing. Results download when complete.</p>
+  </div>
+
   return (
     <div className="pdf-tool-page">
-      <section className="pdf-tool-hero">
-        <div className="pdf-tool-hero__brand">
-          <div className="pdf-tool-hero__icon">▤</div>
-          <div>
-            <h2 className="pdf-tool-hero__title">{page.title}</h2>
-            <p className="pdf-tool-hero__subtitle">{page.hero.subtitle}</p>
-          </div>
-        </div>
-
-        <div className="pdf-tool-hero__highlights">
-          {page.hero.highlights.map((highlight) => (
-            <span key={highlight} className="pdf-tool-highlight">
-              {highlight}
-            </span>
-          ))}
-        </div>
-      </section>
-
+      <button type="button" className="pdf-back-button" disabled={isProcessing} onClick={() => chooseOperation('')}>← All PDF tools</button>
+      <ToolHeader category={page.category} title={activeOperation.label} description={activeOperation.description} />
       <div className="pdf-tool-layout">
         <SurfaceCard title="Operations" className="pdf-tool-nav">
           <div className="pdf-tool-nav__list">
@@ -244,28 +250,27 @@ function PdfTool({ page }) {
                   key={operation.id}
                   type="button"
                   className={`pdf-tool-nav__item${isActive ? ' pdf-tool-nav__item--active' : ''}`}
-                  onClick={() => setActiveOperationId(operation.id)}
+                  disabled={isProcessing}
+                  aria-pressed={isActive}
+                  onClick={() => chooseOperation(operation.id)}
                 >
                   <div>
                     <div className="pdf-tool-nav__label">{operation.label}</div>
                     <div className="pdf-tool-nav__description">{operation.description}</div>
                   </div>
-                  {operation.tag ? <span className="pdf-tool-nav__tag">{operation.tag}</span> : null}
                 </button>
               )
             })}
           </div>
 
-          <div className="pdf-tool-note">{page.localNote}</div>
         </SurfaceCard>
 
         <div className="pdf-tool-main">
           <SurfaceCard
-            title={activeOperation.label}
-            actions={activeOperation.tag ? <span className="tool-header__badge">{activeOperation.tag}</span> : null}
+            title={supportsMultipleFiles(activeOperationId) ? 'Files' : 'File'}
             className="pdf-tool-workspace"
           >
-            <p className="pdf-tool-workspace__description">{activeOperation.description}</p>
+            <p className="processing-note">Files are uploaded for processing. Results download when ready.</p>
 
             <input
               id={fileInputId}
@@ -273,9 +278,13 @@ function PdfTool({ page }) {
               accept={getPdfAccept(activeOperationId)}
               multiple={supportsMultipleFiles(activeOperationId)}
               className="sr-only"
-              onChange={handleFilesChange}
+              disabled={isProcessing}
+              onChange={(event) => { selectFiles(event.target.files); event.target.value = '' }}
             />
-            <div className="upload-dropzone upload-dropzone--pdf">
+            <div className={`upload-dropzone upload-dropzone--pdf${isDragging ? ' is-dragging' : ''}`}
+              onDragOver={(event) => { event.preventDefault(); if (!isProcessing) setIsDragging(true) }}
+              onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsDragging(false) }}
+              onDrop={(event) => { event.preventDefault(); setIsDragging(false); if (!isProcessing) selectFiles(event.dataTransfer.files) }}>
               {selectedFiles.length ? (
                 <div className="pdf-tool-selection">
                       <div className="pdf-tool-selection__summary">
@@ -341,7 +350,17 @@ function PdfTool({ page }) {
                                 {formatFileSize(file.size)} · Updated {file.modifiedAt}
                               </div>
                             </div>
-                            <div className="pdf-tool-file-item__index">{index + 1}</div>
+                            <div className="pdf-tool-file-actions">
+                              {supportsOrderedQueue(activeOperationId) && <>
+                                <button type="button" disabled={isProcessing || index === 0} aria-label={`Move ${file.name} up`} onClick={() => setSelectedFiles((current) => {
+                                  const next = [...current]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; return next
+                                })}>↑</button>
+                                <button type="button" disabled={isProcessing || index === selectedFiles.length - 1} aria-label={`Move ${file.name} down`} onClick={() => setSelectedFiles((current) => {
+                                  const next = [...current]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; return next
+                                })}>↓</button>
+                              </>}
+                              <button type="button" disabled={isProcessing} aria-label={`Remove ${file.name}`} onClick={() => setSelectedFiles((current) => current.filter((_, position) => position !== index))}>×</button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -360,6 +379,7 @@ function PdfTool({ page }) {
                     <button
                       type="button"
                       className="tool-icon-button tool-icon-button--wide"
+                      disabled={isProcessing}
                       onClick={() => {
                         setSelectedFiles([])
                         updateMessage('')
@@ -369,46 +389,23 @@ function PdfTool({ page }) {
                     </button>
                   </div>
 
-                  <StatusMessage message={message} tone={messageTone} />
                 </div>
               ) : (
                 <div className="pdf-tool-upload-empty">
                   <div className="upload-dropzone__icon">⇪</div>
                   <div className="upload-dropzone__title">{uploadPanel.title}</div>
                   <div className="upload-dropzone__hint">{uploadPanel.hint}</div>
-                  <div className="pdf-tool-bullets">
-                    {uploadPanel.bullets.map((bullet) => (
-                      <span key={bullet} className="pdf-tool-bullet">
-                        {bullet}
-                      </span>
-                    ))}
-                  </div>
                   <label htmlFor={fileInputId} className="tool-action tool-action--primary tool-action--compact pdf-tool-upload-button">
                     {uploadPanel.action}
                   </label>
                 </div>
               )}
             </div>
+            <StatusMessage message={message} tone={messageTone} />
           </SurfaceCard>
         </div>
 
-        <div className="pdf-tool-side">
-          {page.infoCards.map((card) => (
-            <SurfaceCard key={card.title} title={card.title}>
-              <p className="dashboard-panel-copy pdf-tool-copy">{card.body}</p>
-            </SurfaceCard>
-          ))}
 
-          <SurfaceCard title="Capabilities">
-            <div className="pdf-tool-capabilities">
-              {page.capabilities.map((capability) => (
-                <div key={capability} className="pdf-tool-capability">
-                  {capability}
-                </div>
-              ))}
-            </div>
-          </SurfaceCard>
-        </div>
       </div>
     </div>
   )
@@ -1634,6 +1631,7 @@ function FileTool({ page }) {
           <span className="tool-action tool-action--primary tool-action--compact">{page.upload.action}</span>
         </label>
 
+        <p className="processing-note">Files are uploaded to inspect metadata and generate a checksum.</p>
         <StatusMessage message={message} />
       </SurfaceCard>
 
@@ -1666,6 +1664,7 @@ function SegmentedControl({ options, selected, onSelect, formatLabel = identity,
           key={item}
           type="button"
           className={`segmented-control__item${selected === item ? ' segmented-control__item--active' : ''}`}
+          aria-pressed={selected === item}
           onClick={() => onSelect(item)}
         >
           {formatLabel(item)}
@@ -1698,59 +1697,7 @@ function StatusMessage({ message, tone = 'neutral' }) {
     return null
   }
 
-  return <div className={`status-message status-message--${tone}`}>{message}</div>
-}
-
-function ExampleSection({ section }) {
-  return (
-    <SurfaceCard title={section.title} className="surface-card--full">
-      {section.cards ? (
-        <div className={`example-grid example-grid--${Math.min(section.cards.length, 4)}`}>
-          {section.cards.map((card) => (
-            <div key={card.title} className="example-card">
-              <div className="example-card__title">{card.title}</div>
-              <div className="example-card__body example-card__body--multiline">{card.body}</div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {section.code ? <pre className="example-code">{section.code}</pre> : null}
-
-      {section.table ? (
-        <div className="reference-table">
-          <div className="reference-table__head">
-            {section.table.columns.map((column) => (
-              <div key={column} className="reference-table__cell reference-table__cell--head">
-                {column}
-              </div>
-            ))}
-          </div>
-          {section.table.rows.map((row, index) => (
-            <div key={`${row[0]}-${index}`} className="reference-table__row">
-              {row.map((cell, cellIndex) => (
-                <div key={`${cell}-${cellIndex}`} className="reference-table__cell">
-                  {cell}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {section.palettes ? (
-        <div className="palette-grid">
-          {section.palettes.map((palette) => (
-            <div key={palette.name} className="palette-card">
-              <div className="palette-card__swatch" style={{ backgroundColor: palette.value }} />
-              <div className="palette-card__name">{palette.name}</div>
-              <div className="palette-card__value">{palette.value}</div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </SurfaceCard>
-  )
+  return <div className={`status-message status-message--${tone}`} role="status">{message}</div>
 }
 
 function copyText(value, setMessage, emptyValue) {
@@ -1825,14 +1772,14 @@ function getPdfAccept(operationId) {
     return '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   }
   if (operationId === 'html-to-pdf') return '.html,.htm,text/html'
-  return 'application/pdf'
+  return '.pdf,application/pdf'
 }
 
 function getPdfUploadPanel(operationId) {
   const defaults = {
     title: 'Drop your PDF files here',
     hint: 'or click to browse from your computer',
-    bullets: ['PDF only', 'Up to 100MB', 'Processed securely'],
+    bullets: ['PDF only', 'Server limits apply', 'Processed securely'],
     action: 'Choose PDF Files',
     entityLabel: 'PDF file',
     entityLabelPlural: 'PDF files',

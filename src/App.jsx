@@ -1,26 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import './styles/glass-theme.css'
 import { AppShell } from './components/AppShell'
 import { sidebarItems, toolPages } from './data/appContent'
 import { DashboardPage } from './pages/DashboardPage'
 import { LandingPage } from './pages/LandingPage'
 import { ToolPage } from './pages/ToolPage'
+import { CategoryPage, NotFoundPage } from './pages/CategoryPage'
 import { APP_ROUTES, normalizeHashRoute, toHash } from './utils/appRouter'
 
-const itemRouteMap = {
-  dashboard: APP_ROUTES.dashboard,
-  base64: APP_ROUTES.base64,
-  json: APP_ROUTES.json,
-  hash: APP_ROUTES.hash,
-  text: APP_ROUTES.text,
-  timestamp: APP_ROUTES.timestamp,
-  number: APP_ROUTES.number,
-  escape: APP_ROUTES.escape,
-  uuid: APP_ROUTES.uuid,
-  color: APP_ROUTES.color,
-  file: APP_ROUTES.file,
-  pdf: APP_ROUTES.pdf,
-}
+const itemRouteMap = Object.fromEntries(sidebarItems.map(({ id }) => [id, APP_ROUTES[id]]))
 
 function App() {
   const [route, setRoute] = useState(() => normalizeHashRoute(window.location.hash))
@@ -31,9 +20,16 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [route])
+
+  const pdfOperation = route.startsWith(`${APP_ROUTES.pdf}/`) ? route.slice(APP_ROUTES.pdf.length + 1) : ''
+  const isPdfOperation = toolPages.pdf.operations.some((item) => item.id === pdfOperation)
+
   const activeItemId = useMemo(() => {
     const matchedEntry = Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)
-    return matchedEntry?.[0] ?? 'dashboard'
+    return matchedEntry?.[0] ?? (route.startsWith('app/pdf/') ? 'pdf' : route.startsWith('category/') ? route.split('/')[1] : '')
   }, [route])
 
   const handleNavigate = (itemId) => {
@@ -50,17 +46,23 @@ function App() {
   if (route === APP_ROUTES.dashboard) {
     return (
       <AppShell sidebarItems={sidebarItems} activeItemId={activeItemId} onNavigate={handleNavigate}>
-        <DashboardPage onOpenTool={handleNavigate} />
+        <DashboardPage />
       </AppShell>
     )
   }
 
-  const toolKey = Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)?.[0]
+  if (route.startsWith('category/')) {
+    return <AppShell sidebarItems={sidebarItems} activeItemId={activeItemId} onNavigate={handleNavigate}>
+      <CategoryPage id={route.split('/')[1]} />
+    </AppShell>
+  }
+
+  const toolKey = isPdfOperation ? 'pdf' : Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)?.[0]
   const toolPage = toolKey ? toolPages[toolKey] : null
 
   return (
     <AppShell sidebarItems={sidebarItems} activeItemId={activeItemId} onNavigate={handleNavigate}>
-      {toolPage ? <ToolPage page={toolPage} /> : <DashboardPage onOpenTool={handleNavigate} />}
+      {toolPage ? <ToolPage key={route} page={toolPage} operation={pdfOperation} /> : <NotFoundPage />}
     </AppShell>
   )
 }

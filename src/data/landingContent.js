@@ -17,7 +17,7 @@ export const featureCards = [
   },
   {
     title: 'Privacy First',
-    description: 'All processing happens client-side',
+    description: 'Process data on demand with our developer API',
     icon: '🔒',
   },
   {
@@ -35,7 +35,10 @@ export const categoryCards = [
   { title: 'Timestamp Tools', count: '6 tools', icon: '◔' },
   { title: 'Number Tools', count: '10 tools', icon: '010' },
   { title: 'Escape Tools', count: '8 tools', icon: '🛡' },
+  { title: 'UUID Tools', count: '5 tools', icon: '✣' },
   { title: 'Color Tools', count: '12 tools', icon: '🎨' },
+  { title: 'File Tools', count: '9 tools', icon: '⇪' },
+  { title: 'PDF Tools', count: '17 tools', icon: '▤' },
 ]
 
 export const apiPreview = `{

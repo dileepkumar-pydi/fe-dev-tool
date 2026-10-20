@@ -1,4 +1,8 @@
 export const APP_ROUTES = {
+  web: 'app/web',
+  jwt: 'app/jwt',
+  regex: 'app/regex',
+  diff: 'app/diff',
   landing: 'landing',
   dashboard: 'app/dashboard',
   base64: 'app/base64',
@@ -16,6 +20,8 @@ export const APP_ROUTES = {
 
 export function normalizeHashRoute(hash) {
   const value = hash.replace(/^#\/?/, '').trim()
+  if (value === 'dashboard') return APP_ROUTES.dashboard
+  if (value.startsWith('tools/')) return `app/${value.slice(6)}`
   return value || APP_ROUTES.landing
 }
 

@@ -1,42 +1,23 @@
-import { Button } from '../components/Button'
-import { SearchIcon } from '../components/SearchIcon'
+import { ToolSearch } from '../components/ToolSearch'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 
-export function HeroSection({ featuredTools }) {
-  return (
-    <section className="hero-section">
-      <div className="container hero-section__inner">
-        <div className="eyebrow-pill">100+ Developer Utilities</div>
+const shortcuts = [
+  { id: 'json', label: 'Format JSON' },
+  { id: 'base64', label: 'Encode Base64' },
+  { id: 'uuid', label: 'Generate UUIDs' },
+  { id: 'pdf', label: 'Work with PDFs' },
+]
 
-        <h1 className="hero-title">
-          Developer Utilities,
-          <br />
-          Simplified & Fast
-        </h1>
-
-        <p className="hero-description">
-          Transform, convert, and process data with powerful API-driven tools. Built for developers who value speed and
-          precision.
-        </p>
-
-        <div className="hero-search">
-          <label className="search-box">
-            <SearchIcon />
-            <input type="text" placeholder="Search for a tool..." />
-          </label>
-
-          <Button className="button--hero" withArrow>
-            Browse Tools
-          </Button>
-        </div>
-
-        <div className="tool-chip-list">
-          {featuredTools.map((tool) => (
-            <span key={tool} className="tool-chip">
-              {tool}
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+export function HeroSection() {
+  return <section className="hero-section">
+    <div className="container hero-section__inner">
+      <p className="hero-kicker">YOUR EVERYDAY DEVELOPER TOOLKIT</p>
+      <h1 className="hero-title">Format. Convert.<br /><span>Keep building.</span></h1>
+      <p className="hero-description">Clean up JSON, encode text, generate hashes, and work with PDFs. Find your tool and get straight to the result.</p>
+      <div className="hero-search"><ToolSearch className="search-box" placeholder="Find a tool — JSON, Base64, PDF…" /></div>
+      <nav className="hero-shortcuts" aria-label="Quick access tools">
+        {shortcuts.map((tool) => <a key={tool.id} href={toHash(APP_ROUTES[tool.id])}>{tool.label}<span aria-hidden="true">↗</span></a>)}
+      </nav>
+    </div>
+  </section>
 }

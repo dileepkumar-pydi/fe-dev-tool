@@ -2,6 +2,10 @@ import { AppIcon } from './AppIcon'
 
 const colorMap = {
   dashboard: 'sky',
+  web: 'teal',
+  jwt: 'amber',
+  regex: 'purple',
+  diff: 'green',
   base64: 'sky',
   json: 'pink',
   hash: 'green',
@@ -25,6 +29,7 @@ export function AppSidebar({ items, activeItemId, onNavigate }) {
             key={item.id}
             type="button"
             className={`app-sidebar__item${isActive ? ' app-sidebar__item--active' : ''}`}
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => onNavigate(item.id)}
           >
             <AppIcon label={item.icon} color={colorMap[item.id] || 'sky'} active={isActive} />

@@ -1,35 +1,40 @@
 import { BrandLogo } from './BrandLogo'
 import { Button } from './Button'
-import { SearchIcon } from './SearchIcon'
+import { useEffect, useState } from 'react'
+import { ToolSearch } from './ToolSearch'
 import { AppSidebar } from './AppSidebar'
 import { APP_ROUTES, toHash } from '../utils/appRouter'
 
 export function AppShell({ children, sidebarItems, activeItemId, onNavigate }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  useEffect(() => {
+    const close = (event) => { if (event.key === 'Escape') setMenuOpen(false) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [])
+  const navigate = (id) => { onNavigate(id); setMenuOpen(false) }
   return (
-    <div className="app-shell">
-      <aside className="app-shell__sidebar">
+    <div className={`app-shell${menuOpen ? ' app-shell--menu-open' : ''}`}>
+      {menuOpen && <button className="app-shell__overlay" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
+      <aside id="tool-sidebar" className="app-shell__sidebar">
         <div className="app-shell__brand">
           <a href={toHash(APP_ROUTES.landing)} className="brand-link" aria-label="Go to DevTools home">
             <BrandLogo />
           </a>
         </div>
-        <AppSidebar items={sidebarItems} activeItemId={activeItemId} onNavigate={onNavigate} />
+        <AppSidebar items={sidebarItems} activeItemId={activeItemId} onNavigate={navigate} />
         <div className="app-shell__sidebar-footer">
-          <div>DevTools v1.0</div>
-          <div>API-powered utilities</div>
+          <div>DevTools</div>
         </div>
       </aside>
 
       <div className="app-shell__content">
         <header className="app-topbar">
-          <button type="button" className="app-topbar__menu" aria-label="Toggle menu">
+          <button type="button" className="app-topbar__menu" aria-label="Toggle menu" aria-expanded={menuOpen} aria-controls="tool-sidebar" onClick={() => setMenuOpen(!menuOpen)}>
             ☰
           </button>
 
-          <label className="app-topbar__search">
-            <SearchIcon />
-            <input type="text" placeholder="Search tools..." />
-          </label>
+          <ToolSearch />
 
           <div className="app-topbar__actions">
             <Button
@@ -39,7 +44,7 @@ export function AppShell({ children, sidebarItems, activeItemId, onNavigate }) {
             >
               Documentation
             </Button>
-            <Button size="small">API Key</Button>
+
           </div>
         </header>
 

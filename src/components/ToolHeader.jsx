@@ -1,14 +1,12 @@
-import { Breadcrumbs } from './Breadcrumbs'
+import { APP_ROUTES, toHash } from '../utils/appRouter'
 
-export function ToolHeader({ category, title, badge, description }) {
-  return (
-    <div className="tool-header">
-      <Breadcrumbs items={['Dashboard', category, title]} />
-      <div className="tool-header__title-row">
-        <h1 className="tool-header__title">{title}</h1>
-        {badge ? <span className="tool-header__badge">{badge}</span> : null}
-      </div>
-      <p className="tool-header__description">{description}</p>
-    </div>
-  )
+export function ToolHeader({ category, title, description }) {
+  return <header className="tool-header">
+    <nav className="breadcrumbs" aria-label="Breadcrumb">
+      <a href={toHash(APP_ROUTES.dashboard)}>All tools</a><span>›</span>
+      <a href={toHash(`category/${category.split(' ')[0].toLowerCase()}`)}>{category.replace(' Tools', '')}</a>
+    </nav>
+    <h1 className="tool-header__title">{title}</h1>
+    <p className="tool-header__description">{description}</p>
+  </header>
 }
