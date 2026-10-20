@@ -12,7 +12,7 @@ export function CategoryPage({ id }) {
     <header className="category-page__header"><AppIcon label={category.icon} color={category.color} /><div><h1>{category.title}</h1><p>{category.description}</p></div></header>
     <div className="category-page__grid">
       {(page.operations || [{ id, label: page.title, description: page.description }]).map((tool) =>
-        <a className="category-tool" key={tool.id} href={toHash(id === 'pdf' ? `${APP_ROUTES.pdf}/${tool.id}` : APP_ROUTES[id])}>
+        <a className="category-tool" key={tool.id} href={toHash(page.operations ? `${APP_ROUTES[id]}/${tool.id}` : APP_ROUTES[id])}>
           <h2>{tool.label} <span>→</span></h2><p>{tool.description}</p>
         </a>)}
     </div>

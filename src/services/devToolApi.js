@@ -1,9 +1,10 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'https://dev-tool-service.onrender.com/v1/dev-tool'
 
-async function apiRequest(path, { method = 'GET', body, headers, isFormData = false } = {}) {
+async function apiRequest(path, { method = 'GET', body, headers, isFormData = false, signal } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
+    signal,
     headers: isFormData
       ? headers
       : {
@@ -339,4 +340,12 @@ export function pdfToExcel(file) {
     body: formData,
     isFormData: true,
   })
+}
+
+export function processImages(operation, files, options, logo, signal) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+  Object.entries(options).forEach(([key, value]) => formData.append(key, value))
+  if (logo) formData.append('logo', logo)
+  return apiRequest(`/api/image/${operation}`, { method: 'POST', body: formData, isFormData: true, signal })
 }

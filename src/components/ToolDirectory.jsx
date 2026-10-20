@@ -2,7 +2,7 @@ import { AppIcon } from './AppIcon'
 import { dashboardCategories } from '../data/appContent'
 import { APP_ROUTES, toHash } from '../utils/appRouter'
 
-const toolOrder = ['json', 'base64', 'pdf', 'web', 'jwt', 'regex', 'diff', 'hash', 'text', 'uuid', 'timestamp', 'number', 'escape', 'color', 'file']
+const toolOrder = ['json', 'base64', 'pdf', 'image', 'web', 'jwt', 'regex', 'diff', 'hash', 'text', 'uuid', 'timestamp', 'number', 'escape', 'color', 'file']
 const tools = toolOrder.map((id) => dashboardCategories.find((tool) => tool.id === id))
 
 export function ToolDirectory() {

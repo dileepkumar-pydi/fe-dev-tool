@@ -1,4 +1,5 @@
 export const APP_ROUTES = {
+  image: 'app/image',
   web: 'app/web',
   jwt: 'app/jwt',
   regex: 'app/regex',

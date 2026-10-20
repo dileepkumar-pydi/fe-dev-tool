@@ -1,3 +1,4 @@
+import { ImageToolsPage } from './ImageToolsPage'
 import { WebFormatter, JwtDecoder, RegexTester, DiffChecker } from './AdditionalTools'
 import { useState } from 'react'
 import { APP_ROUTES, toHash } from '../utils/appRouter'
@@ -51,6 +52,7 @@ const BASE_OPTIONS = [
 ]
 
 export function ToolPage({ page, operation = '' }) {
+  if (page.id === 'image') return <ImageToolsPage operation={operation} />
   if (page.id === 'pdf') return <div className="tool-page"><PdfTool page={page} initialOperation={operation} /></div>
   return (
     <div className="tool-page">

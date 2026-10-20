@@ -17,6 +17,7 @@ const colorMap = {
   color: 'purple',
   file: 'amber',
   pdf: 'rose',
+  image: 'teal',
 }
 
 export function AppSidebar({ items, activeItemId, onNavigate }) {

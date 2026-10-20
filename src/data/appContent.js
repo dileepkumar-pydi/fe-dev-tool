@@ -1,3 +1,5 @@
+import { imageOperations } from './imageTools'
+
 export const sidebarItems = [
   { id: 'dashboard', label: 'All tools', icon: '⌂', type: 'page' },
   { id: 'json', label: 'JSON Tools', icon: '{}', type: 'tool' },
@@ -14,10 +16,12 @@ export const sidebarItems = [
   { id: 'number', label: 'Number Tools', icon: '010', type: 'tool' },
   { id: 'color', label: 'Color Tools', icon: 'palette', type: 'tool' },
   { id: 'file', label: 'File Tools', icon: '⇪', type: 'tool' },
+  { id: 'image', label: 'Image Tools', icon: 'image', type: 'tool' },
   { id: 'pdf', label: 'PDF Tools', icon: '▤', type: 'tool' },
 ]
 
 export const dashboardCategories = [
+  { id: 'image', title: 'Image Tools', description: 'Compress, resize, crop, convert, and edit images', color: 'teal', icon: 'image' },
   { id: 'web', title: 'Web Formatter Tools', description: 'Format HTML, CSS, and JavaScript', color: 'teal', icon: 'code' },
   { id: 'jwt', title: 'JWT Decoder Tools', description: 'Inspect token claims and expiry', color: 'amber', icon: 'key' },
   { id: 'regex', title: 'Regex Tester Tools', description: 'Test patterns and capture groups', color: 'purple', icon: 'regex' },
@@ -36,6 +40,7 @@ export const dashboardCategories = [
 ]
 
 export const toolPages = {
+  image: { id: 'image', category: 'Image Tools', title: 'Image Tools', description: 'Compress, resize, crop, convert, watermark, and edit images.', operations: imageOperations },
   web: { id: 'web', category: 'Web Tools', title: 'Web Formatter', description: 'Format HTML, CSS, and JavaScript code in your browser.' },
   jwt: { id: 'jwt', category: 'JWT Tools', title: 'JWT Decoder', description: 'Inspect JSON Web Token headers, payloads, and expiry claims.' },
   regex: { id: 'regex', category: 'Regex Tools', title: 'Regex Tester', description: 'Test JavaScript regular expressions with highlighted matches and capture groups.' },

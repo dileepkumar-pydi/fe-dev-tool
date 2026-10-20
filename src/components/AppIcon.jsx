@@ -10,8 +10,9 @@ export function AppIcon({ label, color = 'sky', active = false }) {
         <circle cx="15" cy="7.5" r="1" />
         <circle cx="7" cy="14.5" r="1" />
       </svg>
-    ) : ['code', 'key', 'regex', 'diff'].includes(label) ? (
+    ) : ['code', 'key', 'regex', 'diff', 'image'].includes(label) ? (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {label === 'image' && <><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8" cy="8" r="1.5" /><path d="m3 17 5-5 4 4 4-6 5 7" /></>}
         {label === 'code' && <><path d="m8 6-6 6 6 6M16 6l6 6-6 6M14 3l-4 18" /></>}
         {label === 'key' && <><circle cx="8" cy="9" r="5" /><path d="m12 13 8 8M16 17l3-3M19 20l3-3" /></>}
         {label === 'regex' && <><circle cx="5" cy="18" r="1" /><path d="M16 4v12M10 7l12 6M10 13l12-6" /></>}

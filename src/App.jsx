@@ -24,12 +24,13 @@ function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [route])
 
-  const pdfOperation = route.startsWith(`${APP_ROUTES.pdf}/`) ? route.slice(APP_ROUTES.pdf.length + 1) : ''
-  const isPdfOperation = toolPages.pdf.operations.some((item) => item.id === pdfOperation)
+  const operationGroup = ['pdf', 'image'].find((id) => route.startsWith(`${APP_ROUTES[id]}/`))
+  const operation = operationGroup ? route.slice(APP_ROUTES[operationGroup].length + 1) : ''
+  const hasOperation = operationGroup && toolPages[operationGroup].operations.some((item) => item.id === operation)
 
   const activeItemId = useMemo(() => {
     const matchedEntry = Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)
-    return matchedEntry?.[0] ?? (route.startsWith('app/pdf/') ? 'pdf' : route.startsWith('category/') ? route.split('/')[1] : '')
+    return matchedEntry?.[0] ?? (route.startsWith('app/pdf/') ? 'pdf' : route.startsWith('app/image/') ? 'image' : route.startsWith('category/') ? route.split('/')[1] : '')
   }, [route])
 
   const handleNavigate = (itemId) => {
@@ -57,12 +58,12 @@ function App() {
     </AppShell>
   }
 
-  const toolKey = isPdfOperation ? 'pdf' : Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)?.[0]
+  const toolKey = hasOperation ? operationGroup : Object.entries(itemRouteMap).find(([, itemRoute]) => itemRoute === route)?.[0]
   const toolPage = toolKey ? toolPages[toolKey] : null
 
   return (
     <AppShell sidebarItems={sidebarItems} activeItemId={activeItemId} onNavigate={handleNavigate}>
-      {toolPage ? <ToolPage key={route} page={toolPage} operation={pdfOperation} /> : <NotFoundPage />}
+      {toolPage ? <ToolPage key={route} page={toolPage} operation={operation} /> : <NotFoundPage />}
     </AppShell>
   )
 }
